@@ -25,6 +25,13 @@
   .dot{width:6px;height:6px;border-radius:50%;background:#9CA3AF;display:inline-block;margin:0 2px;animation:bounce 1.2s infinite;}
   .dot:nth-child(2){animation-delay:.15s;}.dot:nth-child(3){animation-delay:.3s;}
   @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4;}40%{transform:translateY(-4px);opacity:1;}}
+  .soft-pulse{animation:softPulse 1.6s ease-in-out infinite;}
+  @keyframes softPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
+  .preview-flash{animation:previewFlash 1.1s ease both;}
+  @keyframes previewFlash{0%{box-shadow:0 0 0 0 rgba(59,130,246,.35);border-color:#93C5FD;background:#EFF6FF;}100%{box-shadow:none;}}
+  .skeleton-shimmer{position:relative;overflow:hidden;background:#EEF2F7;}
+  .skeleton-shimmer::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);animation:shimmer 1.4s infinite;}
+  @keyframes shimmer{100%{transform:translateX(100%);}}
   .ability-card{transition:all .2s ease;}
   .ability-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.06);border-color:#A5B4FC;}
   .intent-badge{font-size:10px;padding:2px 8px;border-radius:999px;font-weight:500;letter-spacing:.02em;}
@@ -38,6 +45,12 @@
   .feedback-btn:hover{border-color:#C7D2FE;background:#EEF2FF;color:#4338CA;}
   .feedback-btn.active-like{border-color:#93C5FD;background:#EFF6FF;color:#2563EB;}
   .feedback-btn.active-dislike{border-color:#FCA5A5;background:#FEF2F2;color:#DC2626;}
+  .attachment-menu{box-shadow:0 16px 40px rgba(15,23,42,.12);}
+  .attachment-card{transition:all .15s ease;}
+  .attachment-card:hover{border-color:#BFDBFE;background:#F8FAFC;}
+  .kb-modal{background:rgba(15,23,42,.28);backdrop-filter:blur(2px);}
+  .kb-file-row{transition:all .15s ease;}
+  .kb-file-row:hover{border-color:#93C5FD;background:#EFF6FF;}
   @media(max-width:640px){.parallel-group{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -62,8 +75,8 @@
         <div id="welcome" class="absolute inset-0 flex flex-col items-center justify-center px-6 pb-40 transition-opacity duration-300">
           <div class="w-full max-w-[860px]">
             <h1 class="text-center text-3xl font-semibold text-gray-800 mb-2">有什么我能帮你的吗?</h1>
-            <p class="text-center text-sm text-gray-400 mb-8">选择下方预设,体验 5 种意图识别与处理流程</p>
-            <div id="presetChips" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 justify-items-center"></div>
+            <p id="welcomeSubtitle" class="text-center text-sm text-gray-400 mb-8">选择下方预设,体验 5 种意图识别与处理流程</p>
+            <div id="presetChips" class="max-w-[680px] mx-auto flex flex-col gap-2"></div>
           </div>
         </div>
         <!-- 对话流 -->
@@ -73,10 +86,29 @@
       <!-- 底部输入区 -->
       <footer class="shrink-0 bg-gradient-to-t from-[#F6F7F9] via-[#F6F7F9] to-transparent pt-8 pb-6 pointer-events-none">
         <div class="max-w-[760px] mx-auto px-6 pointer-events-auto">
-          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm px-4 pt-3 pb-2">
-            <textarea id="input" rows="1" placeholder="发消息…" class="w-full resize-none outline-none text-sm text-gray-800 placeholder:text-gray-400 leading-6 max-h-32 mb-1"></textarea>
+          <div class="relative bg-white rounded-2xl border border-gray-200 shadow-sm px-4 pt-3 pb-2">
+            <div id="attachmentPreview" class="hidden flex flex-wrap gap-2 pb-2"></div>
+            <div id="kbMentionPanel" class="hidden absolute left-4 right-4 bottom-[92px] bg-white border border-blue-100 rounded-2xl shadow-lg p-2 z-20">
+              <div class="px-2 py-1.5 text-[11px] text-gray-400">选择知识库文件</div>
+              <div id="kbMentionList" class="space-y-1"></div>
+            </div>
+            <div id="attachmentMenu" class="attachment-menu hidden absolute left-3 bottom-12 w-56 bg-white border border-gray-100 rounded-2xl p-2 z-30">
+              <button id="addImageBtn" type="button" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-gray-50 text-left">
+                <span class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">🖼️</span>
+                <span><span class="block text-sm text-gray-800">添加图片</span><span class="block text-xs text-gray-400">示例: 作文照片</span></span>
+              </button>
+              <button id="addFileBtn" type="button" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-gray-50 text-left">
+                <span class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">📎</span>
+                <span><span class="block text-sm text-gray-800">添加文件</span><span class="block text-xs text-gray-400">示例: 成绩表</span></span>
+              </button>
+              <button id="openKbBtn" type="button" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-gray-50 text-left">
+                <span class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">📚</span>
+                <span><span class="block text-sm text-gray-800">选择知识库文件</span><span class="block text-xs text-gray-400">也可输入 @ 选择</span></span>
+              </button>
+            </div>
+            <textarea id="input" rows="1" placeholder="发消息… 输入 @ 可选择知识库文件" class="w-full resize-none outline-none text-sm text-gray-800 placeholder:text-gray-400 leading-6 max-h-32 mb-1"></textarea>
             <div class="flex items-center gap-1 pt-1.5 border-t border-gray-100">
-              <button class="w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 flex items-center justify-center text-base" title="附件">+</button>
+              <button id="attachBtn" type="button" class="w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 flex items-center justify-center text-base" title="附件">+</button>
               <div class="w-px h-4 bg-gray-200 mx-1"></div>
               <div id="scenarioBar" class="flex items-center gap-0.5 flex-1 overflow-x-auto scrollbar-thin"></div>
               <button class="w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 flex items-center justify-center" title="语音">🎙️</button>
@@ -98,17 +130,45 @@
   </main>
 </div>
 
+<div id="kbModal" class="kb-modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+  <div class="bg-white w-full max-w-[520px] rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div>
+        <div class="text-base font-semibold text-gray-800">选择知识库文件</div>
+        <div class="text-xs text-gray-400 mt-1">老师已上传的资料,选择后会附加到本次对话</div>
+      </div>
+      <button id="closeKbModal" type="button" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400">✕</button>
+    </div>
+    <div id="kbFileList" class="p-4 space-y-2 max-h-[360px] overflow-y-auto scrollbar-thin"></div>
+  </div>
+</div>
+
 <script>
 /* ============== 工具 ============== */
 const $ = (sel,root=document)=>root.querySelector(sel);
 const chat = $('#chatInner');
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 let session = 0;
+const selectedAttachments = [];
+const mockKnowledgeFiles = [
+  {id:'kb1', kind:'kb', icon:'📘', title:'初二语文议论文写作素材库', meta:'知识库 · 48 篇范文 · 2026-05-20'},
+  {id:'kb2', kind:'kb', icon:'📗', title:'本学期班级错题归因记录', meta:'知识库 · 126 条错因 · 2026-05-18'},
+  {id:'kb3', kind:'kb', icon:'📙', title:'中考作文评分标准与样例', meta:'知识库 · 教研组上传 · 2026-05-12'},
+  {id:'kb4', kind:'kb', icon:'📕', title:'初二(3)班近 30 天作业表现', meta:'知识库 · 学情数据 · 2026-05-24'},
+];
+const mockLocalAttachments = {
+  image: {kind:'image', icon:'🖼️', title:'学生作文照片.jpg', meta:'图片 · 课堂拍摄示例'},
+  file: {kind:'file', icon:'📎', title:'初二(3)班月考成绩.xlsx', meta:'文件 · 33KB · 示例附件'},
+};
 
 function resetToHome(){
   closeDrawer();
   chat.innerHTML = '';
   $('#input').value = '';
+  selectedAttachments.splice(0, selectedAttachments.length);
+  renderAttachmentPreview();
+  hideAttachmentMenu();
+  hideKbMentionPanel();
   const w = $('#welcome');
   w.classList.remove('hidden');
   w.style.opacity = '1';
@@ -127,8 +187,90 @@ function scrollBottom(){
   a.scrollTo({top:a.scrollHeight, behavior:'smooth'});
 }
 
-function aiAvatar(){
-  return `<div class="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">象</div>`;
+function renderAttachmentPreview(){
+  const wrap = $('#attachmentPreview');
+  if(!selectedAttachments.length){
+    wrap.classList.add('hidden');
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = selectedAttachments.map((file,i)=>`
+    <div class="attachment-card max-w-full flex items-center gap-2 pl-2 pr-1.5 py-1.5 rounded-xl border border-gray-200 bg-gray-50/70">
+      <div class="w-8 h-8 rounded-lg ${file.kind==='kb'?'bg-emerald-50':file.kind==='image'?'bg-blue-50':'bg-amber-50'} flex items-center justify-center text-base">${file.icon}</div>
+      <div class="min-w-0">
+        <div class="text-xs font-medium text-gray-800 truncate max-w-[210px]">${file.title}</div>
+        <div class="text-[10px] text-gray-400 truncate max-w-[210px]">${file.meta}</div>
+      </div>
+      <button type="button" data-remove-attachment="${i}" class="w-5 h-5 rounded-full hover:bg-gray-200 text-gray-400 text-xs">✕</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('[data-remove-attachment]').forEach(btn=>{
+    btn.onclick = ()=>{
+      selectedAttachments.splice(+btn.dataset.removeAttachment, 1);
+      renderAttachmentPreview();
+    };
+  });
+}
+
+function addAttachment(file){
+  const exists = selectedAttachments.some(item=>item.title === file.title);
+  if(!exists) selectedAttachments.push({...file});
+  renderAttachmentPreview();
+  hideAttachmentMenu();
+  hideKbMentionPanel();
+}
+
+function hideAttachmentMenu(){
+  $('#attachmentMenu').classList.add('hidden');
+}
+
+function toggleAttachmentMenu(){
+  $('#attachmentMenu').classList.toggle('hidden');
+  hideKbMentionPanel();
+}
+
+function renderKnowledgeRows(target, compact=false){
+  target.innerHTML = mockKnowledgeFiles.map(file=>`
+    <button type="button" data-kb-id="${file.id}" class="kb-file-row w-full flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-white text-left">
+      <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-lg">${file.icon}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-gray-800 truncate">${file.title}</div>
+        <div class="text-xs text-gray-400 mt-0.5">${file.meta}</div>
+      </div>
+      ${compact ? '' : '<span class="text-xs text-blue-500">选择</span>'}
+    </button>
+  `).join('');
+  target.querySelectorAll('[data-kb-id]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const file = mockKnowledgeFiles.find(item=>item.id === btn.dataset.kbId);
+      if(file) addAttachment(file);
+      closeKbModal();
+      const input = $('#input');
+      input.value = input.value.replace(/@$/, '');
+      input.focus();
+    };
+  });
+}
+
+function openKbModal(){
+  hideAttachmentMenu();
+  hideKbMentionPanel();
+  renderKnowledgeRows($('#kbFileList'));
+  $('#kbModal').classList.remove('hidden');
+}
+
+function closeKbModal(){
+  $('#kbModal').classList.add('hidden');
+}
+
+function showKbMentionPanel(){
+  renderKnowledgeRows($('#kbMentionList'), true);
+  $('#kbMentionPanel').classList.remove('hidden');
+}
+
+function hideKbMentionPanel(){
+  $('#kbMentionPanel').classList.add('hidden');
 }
 
 /* ============== 渲染原语 ============== */
@@ -142,8 +284,8 @@ function appendUser(text){
 
 function appendAIWrap(){
   const el = document.createElement('div');
-  el.className = 'flex gap-3 fade-in';
-  el.innerHTML = `${aiAvatar()}<div class="ai-body flex-1 min-w-0 space-y-3"></div>`;
+  el.className = 'fade-in';
+  el.innerHTML = `<div class="ai-body min-w-0 space-y-3"></div>`;
   chat.appendChild(el);
   return el.querySelector('.ai-body');
 }
@@ -164,6 +306,42 @@ function thinking(){
   wrap.innerHTML = `<div class="text-gray-400 text-sm py-1"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
   scrollBottom();
   return wrap;
+}
+
+async function showModelLoading(body, opts={}){
+  const minMs = opts.minMs ?? 4200;
+  const row = document.createElement('div');
+  row.className = 'model-loading text-gray-400 text-sm py-1 flex items-center gap-2';
+  row.innerHTML = `
+    <span class="loading-dots inline-flex items-center"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+    <span class="loading-text hidden"></span>
+  `;
+  body.appendChild(row);
+  scrollBottom();
+
+  const dotsEl = row.querySelector('.loading-dots');
+  const textEl = row.querySelector('.loading-text');
+
+  // 0-1s：仅展示 "..." 加载态
+  const timerIntent = setTimeout(()=>{
+    if(!row.isConnected) return;
+    dotsEl?.classList.add('hidden');
+    textEl?.classList.remove('hidden');
+    if(textEl) textEl.textContent = '识别用户意图，分析任务中';
+    scrollBottom();
+  }, 1000);
+
+  // 1-3s：识别意图；3s 后切换为执行中
+  const timerRunning = setTimeout(()=>{
+    if(!row.isConnected) return;
+    if(textEl) textEl.textContent = '执行中...';
+    scrollBottom();
+  }, 3000);
+
+  await sleep(minMs);
+  clearTimeout(timerIntent);
+  clearTimeout(timerRunning);
+  row.remove();
 }
 
 function renderFeedbackActions(body){
@@ -207,12 +385,71 @@ const intentMeta = {
   other:          {label:'其他',             cls:'intent-other',          desc:'闲聊问候,直接回复'},
 };
 
-const presetQuestions = [
-  {id:'single_full',    text:'导出初二(3)班 5 月月考成绩 Excel',           intentType:'single_full'},
-  {id:'single_lack',    text:'帮我分析一下班级学情',                         intentType:'single_lack'},
-  {id:'multi_parallel', text:'同时出一份数学卷和一份语文阅读练习',             intentType:'multi_parallel'},
-  {id:'multi_depend',   text:'根据本周作业生成班级讲评课件',                   intentType:'multi_depend', dynamic:true},
-  {id:'other',          text:'你好',                                         intentType:'other'},
+let activeScenarioId = '';
+const selectedScenarioConfig = {};
+const casualPreset = {id:'other', text:'你好', intentType:'other'};
+
+const scenarios = [
+  {
+    id:'courseware', icon:'📝', label:'生成课件',
+    hint:'选择课件生成相关预设,配置课件页数与用途',
+    configs:['多页课件','单页课件','讲评课件'],
+    presets:[
+      {id:'multi_depend', text:'根据本周作业生成班级讲评课件', intentType:'multi_depend', dynamic:true},
+      {id:'single_lack', text:'把《背影》整理成一份课堂导入课件', intentType:'single_lack'},
+      {id:'multi_depend', text:'先分析学生薄弱点,再生成一份复习课件', intentType:'multi_depend', dynamic:true},
+    ],
+  },
+  {
+    id:'animation', icon:'🎬', label:'生成教学动画',
+    hint:'选择动画生成相关预设,配置动画类型与讲解节奏',
+    configs:['知识点动画','实验演示','解题过程'],
+    presets:[
+      {id:'single_lack', text:'生成一个讲解二次函数图像变化的教学动画', intentType:'single_lack'},
+      {id:'multi_depend', text:'先拆解浮力实验步骤,再生成课堂演示动画', intentType:'multi_depend', dynamic:true},
+      {id:'single_lack', text:'把古诗意象做成 30 秒课堂导入动画', intentType:'single_lack'},
+    ],
+  },
+  {
+    id:'analysis', icon:'📊', label:'学情分析',
+    hint:'选择学情分析相关预设,配置作文或作业分析范围',
+    configs:['作文学情','作业学情','考试学情'],
+    presets:[
+      {id:'single_lack', text:'帮我分析初二(3)班近 7 天作文学情', intentType:'single_lack'},
+      {id:'single_lack', text:'看一下本周数学作业的班级共性问题', intentType:'single_lack'},
+      {id:'multi_depend', text:'先分析本次测验薄弱项,再生成讲评建议', intentType:'multi_depend', dynamic:true},
+    ],
+  },
+  {
+    id:'grading', icon:'✍️', label:'题目批改',
+    hint:'选择批改相关预设,配置批改对象与反馈粒度',
+    configs:['作文批改','作业批改','逐题批改'],
+    presets:[
+      {id:'single_lack', text:'批改这批作文并生成个性化评语', intentType:'single_lack'},
+      {id:'single_lack', text:'批改今天的数学作业,标出高频错题', intentType:'single_lack'},
+      {id:'single_full', text:'导出初二(3)班本次作业批改结果 Excel', intentType:'single_full'},
+    ],
+  },
+  {
+    id:'misprint', icon:'🔎', label:'错印分析',
+    hint:'选择错印分析相关预设,配置归因维度与输出形式',
+    configs:['按学生','按题目','按知识点'],
+    presets:[
+      {id:'single_lack', text:'分析这次作业的高频错印和原因', intentType:'single_lack'},
+      {id:'multi_depend', text:'先归因错印类型,再生成针对性练习', intentType:'multi_depend', dynamic:true},
+      {id:'single_lack', text:'按知识点汇总本周错印分布', intentType:'single_lack'},
+    ],
+  },
+  {
+    id:'quiz', icon:'🧪', label:'AI组题',
+    hint:'选择 AI 组题相关预设,配置题型、难度和用途',
+    configs:['同步练习','单元测','中考模拟'],
+    presets:[
+      {id:'multi_parallel', text:'同时生成一份数学卷和一份语文阅读练习', intentType:'multi_parallel'},
+      {id:'single_lack', text:'围绕一次函数出 10 道分层练习题', intentType:'single_lack'},
+      {id:'multi_parallel', text:'给基础组和提高组各出一套练习', intentType:'multi_parallel'},
+    ],
+  },
 ];
 
 /* ============== 五个意图的剧本 ============== */
@@ -223,10 +460,11 @@ const scripts = {
     tasks: [
       {
         title:'导出月考成绩 Excel', icon:'📊',
-        logs:[
-          '已连接教务系统,读取初二(3)班 5 月月考数据',
-          '共 42 名学生,6 科成绩 + 排名',
-          '正在生成 Excel(含班级均分、分段统计)…',
+        logs:['连接教务系统','拉取月考成绩','生成 Excel 报表'],
+        toolSummaries:[
+          '已连接初二(3)班教务数据源',
+          '共 42 名学生,6 科成绩 + 排名已就绪',
+          'Excel 含班级均分、分段统计,生成完成',
         ],
         summary: 'Excel 已生成,包含 42 名学生的 6 科成绩、班级排名和分段统计表,可直接下载或转发给家长。',
       },
@@ -252,9 +490,11 @@ const scripts = {
     tasks: [
       {
         title:'分析班级学情', icon:'📊',
-        logs:[
-          '已读取初二(3)班近 7 天 35 份作业、12 篇周记',
-          '正在比对常见问题模式…',
+        scanHomework: { total: 35 },
+        logs:['读取班级作业数据','比对常见问题模式'],
+        toolSummaries:[
+          '已拿到 35 份作业、12 篇周记,数据完整',
+          '识别出 3 个高频共性问题,可供下一步使用',
         ],
         summary: '近 7 天共 35 份作业、12 篇周记。班级最突出的 3 个共性问题:论据偏单一(18 篇)、「即/既」混用(11 处)、开头偏弱(9 篇)。',
       },
@@ -281,15 +521,18 @@ const scripts = {
     tasks: [
       {
         title:'组数学模拟卷', icon:'🧪',
-        logs:[
+        logs:['对齐中考考纲','抽取试题','组装试卷'],
+        toolSummaries:[
           '已对齐 2026 北京中考考纲',
           '抽取 20 道题(选择 8 + 填空 6 + 解答 6)',
+          '试卷结构校验通过',
         ],
         summary: '数学卷完成,20 题、120 分钟、难度系数 0.65。',
       },
       {
         title:'出语文阅读练习', icon:'📖',
-        logs:[
+        logs:['选取阅读篇目','生成阅读理解题'],
+        toolSummaries:[
           '已选取 2 篇记叙文 + 1 篇议论文',
           '生成 15 道阅读理解题(含答案解析)',
         ],
@@ -317,17 +560,21 @@ const scripts = {
     tasks: [
       {
         title:'分析班级学情', icon:'📊',
-        logs:[
-          '已读取初二(3)班近 7 天 35 份作业、12 篇周记',
-          '正在比对常见问题模式…',
+        scanHomework: { total: 35 },
+        logs:['读取班级作业数据','比对常见问题模式'],
+        toolSummaries:[
+          '已拿到 35 份作业、12 篇周记,数据完整',
+          '识别出 3 个高频共性问题,可供下一步使用',
         ],
         summary: '我看了 35 份作业和 12 篇周记,班级最突出的有 3 个共性问题:议论文论据偏单一(18 篇)、错别字「即/既」混用(11 处)、开头偏弱(9 篇)。这三个会作为讲评课件的主体内容。',
       },
       {
         title:'生成讲评课件', icon:'📝',
-        logs:[
-          '已生成大纲(封面 + 4 模块)',
-          '正在渲染 HTML…',
+        inputNote:'上一步识别的 3 个共性问题',
+        logs:['生成课件大纲','渲染 HTML 课件'],
+        toolSummaries:[
+          '大纲完成,包含封面 + 4 模块',
+          'HTML 渲染完毕,共 8 页',
         ],
         summary: '课件已经做好,共 8 页,围绕刚才那 3 个问题展开,包含整体表现概览、逐题剖析、范文对照和课后练习,适合一节课讲完。',
       },
@@ -349,34 +596,29 @@ const scripts = {
   },
 };
 
-const scenarios = [
-  {icon:'📊', label:'学情分析'},
-  {icon:'📝', label:'生成课件'},
-  {icon:'🧪', label:'出试卷'},
-  {icon:'✍️', label:'批阅作业'},
-  {icon:'📚', label:'教研备课'},
-  {icon:'🎯', label:'练习推荐'},
-  {icon:'⋯',  label:'更多'},
-];
-
 function renderHome(){
+  const activeScenario = scenarios.find(s=>s.id === activeScenarioId);
+  const presetScenario = activeScenario || scenarios[0];
+  const presetQuestions = [...presetScenario.presets, casualPreset];
+  if(activeScenario && !selectedScenarioConfig[activeScenario.id]){
+    selectedScenarioConfig[activeScenario.id] = activeScenario.configs[0];
+  }
+
+  $('#welcomeSubtitle').textContent = activeScenario ? activeScenario.hint : '选择下方场景,切换对应预设和基础配置';
+
   const wrap = $('#presetChips');
   wrap.innerHTML = presetQuestions.map((q,i)=>{
     const meta = intentMeta[q.intentType];
     return `
-    <button data-i="${i}" class="chip w-full flex flex-col items-start gap-1.5 px-4 py-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-2xl text-left transition">
-      <span class="intent-badge ${meta.cls}">${meta.label}</span>
-      <span class="text-sm text-gray-800 leading-snug">${q.dynamic?'<span class="text-amber-500 mr-0.5">✨</span>':''}${q.text}</span>
-      <span class="text-[11px] text-gray-400">${meta.desc}</span>
+    <button data-i="${i}" class="chip group w-full flex items-center gap-3 px-4 py-2.5 bg-white/90 hover:bg-blue-50/70 border border-gray-200 hover:border-blue-200 rounded-xl text-left transition">
+      <span class="w-1.5 h-1.5 rounded-full bg-blue-400 opacity-70 shrink-0"></span>
+      <span class="min-w-0 flex-1 text-sm text-gray-800 leading-6">${q.dynamic?'<span class="text-amber-500 mr-0.5">✨</span>':''}${q.text}</span>
+      <span class="intent-badge ${meta.cls} shrink-0 hidden sm:inline-flex">${meta.label}</span>
+      <span class="text-gray-300 group-hover:text-blue-400 transition shrink-0">›</span>
     </button>`;
   }).join('');
 
-  const bar = $('#scenarioBar');
-  bar.innerHTML = scenarios.map(s=>`
-    <button class="px-2.5 py-1 rounded-lg hover:bg-gray-100 text-gray-600 text-xs flex items-center gap-1 shrink-0" title="${s.label}">
-      <span class="text-sm">${s.icon}</span><span>${s.label}</span>
-    </button>
-  `).join('');
+  renderScenarioBar(activeScenario);
 
   return new Promise(resolve=>{
     wrap.querySelectorAll('button').forEach(btn=>{
@@ -385,6 +627,57 @@ function renderHome(){
         resolve(presetQuestions[i]);
       };
     });
+    bindScenarioBar(resolve);
+  });
+}
+
+function renderScenarioBar(activeScenario){
+  const bar = $('#scenarioBar');
+  if(!activeScenario){
+    bar.innerHTML = scenarios.map(s=>`
+      <button data-scenario="${s.id}" class="px-2.5 py-1 rounded-lg hover:bg-gray-100 text-gray-700 text-xs flex items-center gap-1 shrink-0" title="${s.label}">
+        <span class="text-sm">${s.icon}</span><span>${s.label}</span>
+      </button>
+    `).join('');
+    return;
+  }
+
+  const selected = selectedScenarioConfig[activeScenario.id] || activeScenario.configs[0];
+  bar.innerHTML = `
+    <button data-clear-scenario="true" class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs flex items-center gap-1 shrink-0" title="取消${activeScenario.label}">
+      <span class="text-sm">${activeScenario.icon}</span><span>${activeScenario.label}</span><span class="text-blue-400">×</span>
+    </button>
+    ${activeScenario.configs.map(config=>`
+      <button type="button" data-config="${config}" class="px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 shrink-0 ${config===selected?'bg-gray-100 text-gray-900':'hover:bg-gray-50 text-gray-700'}">
+        <span>${config}</span><span class="text-gray-400">⌄</span>
+      </button>
+    `).join('')}
+  `;
+}
+
+function bindScenarioBar(resolve){
+  const bar = $('#scenarioBar');
+  bar.querySelectorAll('button[data-scenario]').forEach(btn=>{
+    btn.onclick = ()=>{
+      activeScenarioId = btn.dataset.scenario;
+      renderHome().then(resolve);
+    };
+  });
+  const clearBtn = bar.querySelector('button[data-clear-scenario]');
+  if(clearBtn){
+    clearBtn.onclick = ()=>{
+      activeScenarioId = '';
+      renderHome().then(resolve);
+    };
+  }
+  const scenario = scenarios.find(s=>s.id === activeScenarioId);
+  bar.querySelectorAll('button[data-config]').forEach(btn=>{
+    btn.onclick = ()=>{
+      if(!scenario) return;
+      selectedScenarioConfig[scenario.id] = btn.dataset.config;
+      renderScenarioBar(scenario);
+      bindScenarioBar(resolve);
+    };
   });
 }
 
@@ -404,6 +697,7 @@ function step3_userMsg(text){
 /* ============== 步骤 4:意图澄清(选择 + 自定义输入) ============== */
 async function step4_clarify(clarify){
   const body = appendAIWrap();
+  await showModelLoading(body, {minMs: 4200});
   const p = document.createElement('div');
   p.className = 'text-[15px] text-gray-800 leading-7';
   body.appendChild(p);
@@ -451,8 +745,11 @@ async function step4_clarify(clarify){
 }
 
 /* ============== 步骤 5:任务规划(纯文字)============== */
-async function step5_plan(planText){
+async function step5_plan(planText, opts={}){
   const body = appendAIWrap();
+  if(opts.withIntentLoading){
+    await showModelLoading(body, {minMs: 4200});
+  }
   const p = document.createElement('div');
   p.className = 'text-[15px] text-gray-800 leading-7 whitespace-pre-line';
   body.appendChild(p);
@@ -463,9 +760,21 @@ async function step5_plan(planText){
 /* ============== 步骤 6:任务执行(核心)============== */
 async function step6_execute(tasks){
   const body = appendAIWrap();
-  for(const t of tasks){
-    await runSubTask(body, t);
+  if(tasks.length <= 1){
+    for(let i=0;i<tasks.length;i++){
+      await runSubTask(body, tasks[i], {taskIndex:i, totalTasks:tasks.length});
+    }
+    return body;
   }
+
+  const cards = tasks.map((task,i)=>createSubTaskCard(task, {pending:i>0}));
+  cards.forEach(({card})=>body.appendChild(card));
+  scrollBottom();
+
+  for(let i=0;i<tasks.length;i++){
+    await runSubTask(body, tasks[i], {card:cards[i].card, taskIndex:i, totalTasks:tasks.length});
+  }
+  return body;
 }
 
 /* ============== 步骤 6b:并行任务执行 ============== */
@@ -487,9 +796,10 @@ async function step6_executeParallel(tasks){
     return col;
   });
 
-  await Promise.all(tasks.map((t,i)=>runSubTask(cols[i], t, {compact:true})));
+  await Promise.all(tasks.map((t,i)=>runSubTask(cols[i], t, {compact:true, taskIndex:i, totalTasks:tasks.length})));
   scrollBottom();
   await sleep(450);
+  return body;
 }
 
 function renderSummary(text){
@@ -499,53 +809,81 @@ function renderSummary(text){
   `;
 }
 
-async function runSubTask(parent, task, opts={}){
+function createSubTaskCard(task, opts={}){
+  const pending = !!opts.pending;
   const card = document.createElement('div');
-  card.className = 'border border-gray-200 rounded-xl bg-white overflow-hidden fade-in';
+  card.className = `border rounded-xl overflow-hidden fade-in ${pending?'border-gray-200 bg-gray-50/80 opacity-75':'border-gray-200 bg-white'}`;
   card.innerHTML = `
     <div class="header flex items-center gap-2.5 px-4 py-3 ${task.logs?.length||task.progress?'border-b border-gray-100':''}">
-      <div class="status w-4 h-4 flex items-center justify-center"><div class="spinner"></div></div>
-      <div class="text-sm font-medium text-gray-800 flex-1">${task.icon} ${task.title}</div>
-      <div class="state text-xs text-gray-400">${opts.compact?'并行':'运行中'}</div>
+      <div class="status w-4 h-4 flex items-center justify-center">${pending?'<span class="text-gray-400 text-sm">⌛</span>':'<div class="spinner"></div>'}</div>
+      <div class="task-title text-sm font-medium ${pending?'text-gray-500':'text-gray-800'} flex-1">${task.icon} ${task.title}</div>
+      <div class="state text-xs text-gray-400">${pending?'待开始':opts.compact?'并行':'运行中'}</div>
       <div class="caret hidden text-gray-400 text-xs select-none">▾</div>
     </div>
     <div class="logs px-4 py-2.5 space-y-1 text-[13px] text-gray-500 leading-6 bg-gray-50/50"></div>
   `;
-  parent.appendChild(card);
+  return {card};
+}
+
+async function runHomeworkScan(logsEl, total){
+  const row = document.createElement('div');
+  row.className = 'log-line fade-in text-[13px] text-gray-500 leading-6 py-0.5 flex items-center gap-1';
+  row.innerHTML = `<span>· 正在扫描作业</span> <span class="scan-num font-medium text-gray-700">0</span> <span class="text-gray-400">/ ${total} 份</span>`;
+  logsEl.appendChild(row);
+  const numEl = row.querySelector('.scan-num');
+  const ticks = Math.min(total, 35);
+  for(let i=1;i<=ticks;i++){
+    numEl.textContent = Math.round(total * i / ticks);
+    scrollBottom();
+    await sleep(90 + Math.random()*40);
+  }
+  numEl.textContent = total;
+  scrollBottom();
+  await sleep(350);
+}
+
+function appendLogLine(logsEl, text){
+  const row = document.createElement('div');
+  row.className = 'log-line fade-in text-[13px] text-gray-500 leading-6 py-0.5';
+  row.textContent = '· ' + text;
+  logsEl.appendChild(row);
+  scrollBottom();
+}
+
+function buildToolSteps(task){
+  return (task.logs || []).map((name, index)=>({
+    name,
+    summary: task.toolSummaries?.[index] ?? '',
+  }));
+}
+
+async function runSubTask(parent, task, opts={}){
+  const card = opts.card || createSubTaskCard(task, opts).card;
+  if(!opts.card) parent.appendChild(card);
+  card.className = 'border border-gray-200 rounded-xl bg-white overflow-hidden fade-in';
+  card.querySelector('.status').innerHTML = '<div class="spinner"></div>';
+  card.querySelector('.task-title').className = 'task-title text-sm font-medium text-gray-800 flex-1';
+  card.querySelector('.state').textContent = opts.compact?'并行':'运行中';
   scrollBottom();
 
   const logs = card.querySelector('.logs');
+  const steps = buildToolSteps(task);
 
-  // 数字进度(可选)— 慢一点
-  if(task.progress){
-    const row = document.createElement('div');
-    row.className = 'flex items-center gap-2';
-    row.innerHTML = `
-      <span class="text-gray-500">${task.progress.label}</span>
-      <span class="num text-gray-800 font-medium">0</span>
-      <span class="text-gray-400">/ ${task.progress.to} ${task.progress.unit||''}</span>
-    `;
-    logs.appendChild(row);
-    const numEl = row.querySelector('.num');
-    const total = task.progress.to;
-    const ticks = Math.min(total, 30);
-    for(let i=1;i<=ticks;i++){
-      numEl.textContent = Math.round(total * i / ticks);
-      await sleep(110);
+  for(const [index, step] of steps.entries()){
+    // 1. 工具名称
+    appendLogLine(logs, step.name);
+    await sleep(700 + Math.random()*260);
+
+    // 2. 学情分析：首个工具后展示作业扫描
+    if(index === 0 && task.scanHomework){
+      await runHomeworkScan(logs, task.scanHomework.total);
     }
-    numEl.textContent = total;
-    scrollBottom();
-    await sleep(400);
-  }
 
-  // 关键 log(精简,2-3 条)— 慢一点,让人能读清
-  for(const line of (task.logs||[])){
-    const row = document.createElement('div');
-    row.className = 'fade-in';
-    row.textContent = '· ' + line;
-    logs.appendChild(row);
-    scrollBottom();
-    await sleep(620 + Math.random()*200);
+    // 3. Agent 总结（与工具名称同一样式）
+    if(step.summary){
+      appendLogLine(logs, step.summary);
+      await sleep(820 + Math.random()*260);
+    }
   }
 
   // 完成态
@@ -575,6 +913,7 @@ async function runSubTask(parent, task, opts={}){
     card.appendChild(sumEl);
     await typewriter(sumEl, task.summary, 20);
   }
+  fillDrawerChunk(opts.taskIndex ?? 0, opts.totalTasks ?? 1, task);
 
   // header 可点击展开/收起 log —— 修复展开高度算上 padding
   const header = card.querySelector('.header');
@@ -616,6 +955,79 @@ async function runSubTask(parent, task, opts={}){
   await sleep(450);
 }
 
+function collapseExecutionBody(body){
+  if(!body || body.querySelector('.execution-toggle')) return;
+  const detail = document.createElement('div');
+  detail.className = 'execution-detail hidden space-y-3';
+  Array.from(body.children).forEach(child=>detail.appendChild(child));
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'execution-toggle w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-left text-xs text-gray-500 hover:border-blue-200 hover:bg-blue-50/60 transition fade-in';
+  toggle.innerHTML = `
+    <span class="flex items-center gap-2"><span class="text-green-500">✓</span><span>执行过程已完成,已折叠</span></span>
+    <span class="toggle-label text-blue-500">查看执行过程</span>
+  `;
+
+  let expanded = false;
+  toggle.onclick = ()=>{
+    expanded = !expanded;
+    detail.classList.toggle('hidden', !expanded);
+    toggle.querySelector('.toggle-label').textContent = expanded ? '收起执行过程' : '查看执行过程';
+    scrollBottom();
+  };
+
+  body.appendChild(toggle);
+  body.appendChild(detail);
+  scrollBottom();
+}
+
+function collapseProcessIntoFinalMessage(finalBody){
+  if(!finalBody || finalBody.dataset.globalCollapsed === 'true') return;
+
+  const detail = document.createElement('div');
+  detail.className = 'process-detail hidden space-y-3';
+
+  const finalMessage = finalBody.closest('.fade-in');
+  let node = finalMessage?.previousElementSibling;
+  const processMessages = [];
+  while(node && !node.classList.contains('justify-end')){
+    if(node.querySelector?.('.ai-body')) processMessages.unshift(node);
+    node = node.previousElementSibling;
+  }
+  processMessages.forEach((message)=>{
+    const body = message.querySelector('.ai-body');
+    if(body) Array.from(body.children).forEach(child=>detail.appendChild(child));
+    message.remove();
+  });
+
+  const finalProcessNodes = Array.from(finalBody.querySelectorAll('.model-loading,.reasoning-card'));
+  finalProcessNodes.forEach(node=>detail.appendChild(node));
+
+  if(!detail.children.length) return;
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'process-toggle w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-left text-xs text-gray-500 hover:border-blue-200 hover:bg-blue-50/60 transition';
+  toggle.innerHTML = `
+    <span class="flex items-center gap-2"><span class="text-green-500">✓</span><span>执行过程已完成,已折叠</span></span>
+    <span class="toggle-label text-blue-500">查看执行过程</span>
+  `;
+
+  let expanded = false;
+  toggle.onclick = ()=>{
+    expanded = !expanded;
+    detail.classList.toggle('hidden', !expanded);
+    toggle.querySelector('.toggle-label').textContent = expanded ? '收起执行过程' : '查看执行过程';
+    scrollBottom();
+  };
+
+  finalBody.dataset.globalCollapsed = 'true';
+  finalBody.prepend(detail);
+  finalBody.prepend(toggle);
+  scrollBottom();
+}
+
 /* ============== 步骤 7:任务回复 + 文件卡(自动预览)============== */
 async function step7_reply(scriptObj){
   const body = appendAIWrap();
@@ -641,6 +1053,7 @@ async function step7_reply(scriptObj){
 
   await sleep(400);
   openDrawer(f);
+  return body;
 }
 
 /* ============== 步骤 8:追问问题 ============== */
@@ -657,19 +1070,45 @@ function step8_followups(list){
 }
 
 /* ============== 抽屉 ============== */
-function openDrawer(file){
+let activePreview = {kind:'', completed:new Set()};
+
+function openDrawer(file, opts={}){
   const drawer = $('#drawer');
   drawer.classList.remove('closed');
   drawer.classList.add('open');
   if(file){
+    activePreview = {kind:file.preview, completed:new Set()};
     $('#drawerTitle').textContent = `${file.icon} ${file.title}`;
-    $('#drawerBody').innerHTML = mockPreview(file.preview);
+    $('#drawerBody').innerHTML = opts.skeleton ? mockPreviewSkeleton(file.preview) : mockPreview(file.preview);
   }
 }
 function closeDrawer(){
   const drawer = $('#drawer');
   drawer.classList.add('closed');
   drawer.classList.remove('open');
+}
+
+function fillDrawerChunk(taskIndex, totalTasks, task){
+  if(!activePreview.kind || $('#drawer').classList.contains('closed')) return;
+  activePreview.completed.add(taskIndex);
+  const kind = activePreview.kind;
+  if(kind === 'parallel'){
+    $('#drawerBody').innerHTML = mockParallelProgress(activePreview.completed);
+  }else if(kind === 'lesson' && totalTasks > 1 && taskIndex === 0){
+    $('#drawerBody').innerHTML = mockLessonProgress();
+  }else{
+    $('#drawerBody').innerHTML = mockPreview(kind);
+  }
+  flashDrawerPreview(taskIndex);
+}
+
+function flashDrawerPreview(taskIndex=0){
+  const cards = $('#drawerBody').querySelectorAll('[data-preview-part]');
+  const target = cards[taskIndex] || cards[cards.length - 1] || $('#drawerBody').firstElementChild;
+  if(!target) return;
+  target.classList.remove('preview-flash');
+  void target.offsetWidth;
+  target.classList.add('preview-flash');
 }
 
 /* ============== Mock 预览(三套模板)============== */
@@ -681,6 +1120,94 @@ function mockPreview(kind){
   if(kind === 'analysis') return mockAnalysis();
   if(kind === 'parallel') return mockParallel();
   return '';
+}
+
+function mockPreviewSkeleton(kind){
+  if(kind === 'lesson') return mockSlidesSkeleton();
+  if(kind === 'export') return mockExportSkeleton();
+  if(kind === 'analysis') return mockAnalysisSkeleton();
+  if(kind === 'parallel') return mockParallelProgress(new Set());
+  return `
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="h-5 w-40 rounded skeleton-shimmer mb-4"></div>
+      <div class="h-3 w-full rounded skeleton-shimmer mb-2"></div>
+      <div class="h-3 w-2/3 rounded skeleton-shimmer"></div>
+    </div>`;
+}
+
+function mockSlidesSkeleton(){
+  return `
+    <div class="space-y-4">
+      ${Array.from({length:8}).map((_,i)=>`
+        <div data-preview-part="${i}" class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 aspect-[16/10]">
+          <div class="h-3 w-24 rounded skeleton-shimmer mb-8"></div>
+          <div class="h-6 w-1/2 mx-auto rounded skeleton-shimmer mb-4"></div>
+          <div class="h-3 w-2/3 mx-auto rounded skeleton-shimmer"></div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function mockLessonProgress(){
+  return `
+    <div class="space-y-4">
+      <div data-preview-part="0" class="bg-white rounded-xl shadow-sm border border-blue-200 p-6">
+        <div class="text-sm font-medium text-gray-800 mb-3">📊 学情结论已生成</div>
+        <div class="space-y-2 text-sm text-gray-600">
+          <div>· 论据偏单一: 18 篇</div>
+          <div>· 「即/既」混用: 11 处</div>
+          <div>· 开头偏弱: 9 篇</div>
+        </div>
+      </div>
+      ${Array.from({length:7}).map((_,i)=>`
+        <div data-preview-part="${i+1}" class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 aspect-[16/10]">
+          <div class="h-3 w-24 rounded skeleton-shimmer mb-8"></div>
+          <div class="h-5 w-1/2 mx-auto rounded skeleton-shimmer mb-4"></div>
+          <div class="h-3 w-2/3 mx-auto rounded skeleton-shimmer"></div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function mockExportSkeleton(){
+  return `
+    <div data-preview-part="0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-4">
+      <div class="h-5 w-56 rounded skeleton-shimmer mb-4"></div>
+      <table class="w-full text-sm">
+        <thead><tr class="text-xs text-gray-400 border-b">
+          <th class="text-left py-2">学号</th><th class="text-left py-2">姓名</th>
+          <th class="text-left py-2">语文</th><th class="text-left py-2">数学</th>
+          <th class="text-left py-2">英语</th><th class="text-left py-2">总分</th><th class="text-left py-2">排名</th>
+        </tr></thead>
+        <tbody>${[1,2,3].map(()=>`<tr class="border-b border-gray-100">${Array.from({length:7}).map(()=>`<td class="py-2"><div class="h-3 w-10 rounded skeleton-shimmer"></div></td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+}
+
+function mockAnalysisSkeleton(){
+  return `
+    <div data-preview-part="0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-4">
+      <div class="h-5 w-36 rounded skeleton-shimmer mb-5"></div>
+      <div class="space-y-4">
+        ${[1,2,3].map(()=>`
+          <div>
+            <div class="flex justify-between mb-1"><div class="h-3 w-20 rounded skeleton-shimmer"></div><div class="h-3 w-8 rounded skeleton-shimmer"></div></div>
+            <div class="h-2 bg-gray-100 rounded"><div class="h-2 w-1/3 rounded skeleton-shimmer"></div></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+}
+
+function mockParallelProgress(completed){
+  const item = (i, icon, title, meta)=> completed.has(i)
+    ? `<div data-preview-part="${i}" class="bg-white rounded-xl shadow-sm border border-blue-200 p-5"><div class="text-sm font-medium text-gray-800 mb-2">${icon} ${title}</div><div class="text-xs text-gray-500">${meta}</div></div>`
+    : `<div data-preview-part="${i}" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5"><div class="h-4 w-32 rounded skeleton-shimmer mb-3"></div><div class="h-3 w-44 rounded skeleton-shimmer"></div></div>`;
+  return `
+    <div class="space-y-4">
+      ${item(0, '🧪', '数学模拟卷', '20 题 · 120 分钟 · 难度 0.65')}
+      ${item(1, '📖', '语文阅读练习', '3 篇阅读 · 15 道题 · 含解析')}
+    </div>`;
 }
 
 function mockExport(){
@@ -884,6 +1411,7 @@ function mockGrading(){
 /* ============== 其他:纯对话回复(无工具/子 agent) ============== */
 async function runSimpleChat(scriptObj, sid){
   const body = appendAIWrap();
+  await showModelLoading(body, {minMs: 4200});
   const p = document.createElement('div');
   p.className = 'text-[15px] text-gray-800 leading-7';
   body.appendChild(p);
@@ -897,18 +1425,23 @@ async function runSimpleChat(scriptObj, sid){
 }
 
 /* ============== 通用收尾:规划 → 执行 → 回复 ============== */
-async function runTail(scriptObj, sid){
-  await step5_plan(scriptObj.plan);
+async function runTail(scriptObj, sid, opts={}){
+  await step5_plan(scriptObj.plan, {withIntentLoading: !!opts.withIntentLoading});
   if(sid !== session) return;
+  if(scriptObj.file){
+    openDrawer(scriptObj.file, {skeleton:true});
+  }
+  let processBody;
   if(scriptObj.parallel){
-    await step6_executeParallel(scriptObj.tasks);
+    processBody = await step6_executeParallel(scriptObj.tasks);
   }else{
-    await step6_execute(scriptObj.tasks);
+    processBody = await step6_execute(scriptObj.tasks);
   }
   if(sid !== session) return;
   await sleep(400);
   if(sid !== session) return;
-  await step7_reply(scriptObj);
+  const finalBody = await step7_reply(scriptObj);
+  collapseProcessIntoFinalMessage(finalBody);
   if(sid !== session) return;
   await sleep(500);
   if(sid !== session) return;
@@ -932,7 +1465,7 @@ async function main(sid){
 
   switch(intentType){
     case 'single_full': {
-      await runTail(s, sid);
+      await runTail(s, sid, {withIntentLoading: true});
       break;
     }
     case 'single_lack': {
@@ -972,6 +1505,36 @@ async function main(sid){
   }
 }
 
+$('#attachBtn').onclick = (e)=>{
+  e.stopPropagation();
+  toggleAttachmentMenu();
+};
+$('#addImageBtn').onclick = ()=>addAttachment(mockLocalAttachments.image);
+$('#addFileBtn').onclick = ()=>addAttachment(mockLocalAttachments.file);
+$('#openKbBtn').onclick = openKbModal;
+$('#closeKbModal').onclick = closeKbModal;
+$('#kbModal').onclick = (e)=>{
+  if(e.target.id === 'kbModal') closeKbModal();
+};
+$('#input').addEventListener('input', (e)=>{
+  if(e.target.value.endsWith('@')){
+    showKbMentionPanel();
+    hideAttachmentMenu();
+  }else{
+    hideKbMentionPanel();
+  }
+});
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('#attachmentMenu') && !e.target.closest('#attachBtn')) hideAttachmentMenu();
+  if(!e.target.closest('#kbMentionPanel') && e.target !== $('#input')) hideKbMentionPanel();
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    hideAttachmentMenu();
+    hideKbMentionPanel();
+    closeKbModal();
+  }
+});
 $('#newChatBtn').onclick = startNewConversation;
 main(++session);
 </script>
