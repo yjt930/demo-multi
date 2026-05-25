@@ -17,8 +17,9 @@
   .chip{transition:all .15s ease;}
   .chip:hover:not(:disabled){background:#EEF2FF;border-color:#A5B4FC;color:#4338CA;}
   .chip:disabled{opacity:.5;cursor:not-allowed;}
-  .drawer{transition:transform .35s cubic-bezier(.4,0,.2,1);}
-  .drawer.closed{transform:translateX(100%);}
+  .drawer{transition:width .35s cubic-bezier(.4,0,.2,1),min-width .35s cubic-bezier(.4,0,.2,1),border-color .35s ease;}
+  .drawer.closed{width:0;min-width:0;border-left-color:transparent;}
+  .drawer.open{width:50%;min-width:360px;}
   .spinner{width:14px;height:14px;border:2px solid #DBEAFE;border-top-color:#3B82F6;border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
   .dot{width:6px;height:6px;border-radius:50%;background:#9CA3AF;display:inline-block;margin:0 2px;animation:bounce 1.2s infinite;}
@@ -26,6 +27,14 @@
   @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4;}40%{transform:translateY(-4px);opacity:1;}}
   .ability-card{transition:all .2s ease;}
   .ability-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.06);border-color:#A5B4FC;}
+  .intent-badge{font-size:10px;padding:2px 8px;border-radius:999px;font-weight:500;letter-spacing:.02em;}
+  .intent-single_full{background:#ECFDF5;color:#059669;}
+  .intent-single_lack{background:#FFF7ED;color:#D97706;}
+  .intent-multi_parallel{background:#EFF6FF;color:#2563EB;}
+  .intent-multi_depend{background:#EEF2FF;color:#4338CA;}
+  .intent-other{background:#F3F4F6;color:#6B7280;}
+  .parallel-group{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:640px){.parallel-group{grid-template-columns:1fr;}}
 </style>
 </head>
 <body class="overflow-hidden">
@@ -37,51 +46,52 @@
       <div class="font-semibold text-gray-800">学情助手</div>
       <span class="text-xs text-gray-400 ml-1">Beta · 教师专属</span>
     </div>
-    <button class="text-gray-400 hover:text-gray-600 text-xs">+ 新对话</button>
+    <button id="newChatBtn" class="text-gray-400 hover:text-gray-600 text-xs">+ 新对话</button>
   </header>
 
   <!-- 主体 -->
-  <main class="flex-1 flex overflow-hidden">
-    <!-- 对话区 -->
-    <section id="chatArea" class="flex-1 overflow-y-auto scrollbar-thin relative">
-      <!-- 首屏欢迎(豆包风) -->
-      <div id="welcome" class="absolute inset-0 flex flex-col items-center justify-center px-6 pb-40 transition-opacity duration-300">
-        <div class="w-full max-w-[860px]">
-          <h1 class="text-center text-3xl font-semibold text-gray-800 mb-10">有什么我能帮你的吗?</h1>
-          <div id="presetChips" class="flex flex-wrap justify-center gap-3"></div>
+  <main class="flex-1 flex overflow-hidden min-h-0">
+    <!-- 左侧：对话区 + 输入框 -->
+    <div id="chatColumn" class="flex-1 min-w-0 flex flex-col relative">
+      <section id="chatArea" class="flex-1 overflow-y-auto scrollbar-thin relative min-h-0">
+        <!-- 首屏欢迎(豆包风) -->
+        <div id="welcome" class="absolute inset-0 flex flex-col items-center justify-center px-6 pb-40 transition-opacity duration-300">
+          <div class="w-full max-w-[860px]">
+            <h1 class="text-center text-3xl font-semibold text-gray-800 mb-2">有什么我能帮你的吗?</h1>
+            <p class="text-center text-sm text-gray-400 mb-8">选择下方预设,体验 5 种意图识别与处理流程</p>
+            <div id="presetChips" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 justify-items-center"></div>
+          </div>
         </div>
-      </div>
-      <!-- 对话流 -->
-      <div id="chatInner" class="max-w-[760px] mx-auto px-6 py-8 space-y-6 pb-40 hidden"></div>
-    </section>
+        <!-- 对话流 -->
+        <div id="chatInner" class="max-w-[760px] mx-auto px-6 py-8 space-y-6 pb-40 hidden"></div>
+      </section>
 
-    <!-- 右侧抽屉 -->
-    <aside id="drawer" class="drawer closed fixed right-0 top-14 bottom-0 w-[50%] bg-white border-l border-gray-200 shadow-2xl z-30 flex flex-col">
-      <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100">
+      <!-- 底部输入区 -->
+      <footer class="shrink-0 bg-gradient-to-t from-[#F6F7F9] via-[#F6F7F9] to-transparent pt-8 pb-6 pointer-events-none">
+        <div class="max-w-[760px] mx-auto px-6 pointer-events-auto">
+          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm px-4 pt-3 pb-2">
+            <textarea id="input" rows="1" placeholder="发消息…" class="w-full resize-none outline-none text-sm text-gray-800 placeholder:text-gray-400 leading-6 max-h-32 mb-1"></textarea>
+            <div class="flex items-center gap-1 pt-1.5 border-t border-gray-100">
+              <button class="w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 flex items-center justify-center text-base" title="附件">+</button>
+              <div class="w-px h-4 bg-gray-200 mx-1"></div>
+              <div id="scenarioBar" class="flex items-center gap-0.5 flex-1 overflow-x-auto scrollbar-thin"></div>
+              <button class="w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 flex items-center justify-center" title="语音">🎙️</button>
+            </div>
+          </div>
+          <div class="text-[11px] text-gray-400 text-center mt-2">学情助手 · 内容由 AI 生成,仅供教学参考</div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- 右侧预览面板（挤开对话区，不遮盖） -->
+    <aside id="drawer" class="drawer closed shrink-0 overflow-hidden bg-white border-l border-gray-200 flex flex-col">
+      <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0 min-w-[360px]">
         <div id="drawerTitle" class="text-sm font-medium text-gray-700 truncate">📄 文件预览</div>
         <button onclick="closeDrawer()" class="text-gray-400 hover:text-gray-700 text-lg leading-none">✕</button>
       </div>
-      <div class="flex-1 overflow-y-auto bg-gray-50 p-6 scrollbar-thin" id="drawerBody"></div>
+      <div class="flex-1 overflow-y-auto bg-gray-50 p-6 scrollbar-thin min-w-[360px]" id="drawerBody"></div>
     </aside>
   </main>
-
-  <!-- 底部输入区 -->
-  <footer class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#F6F7F9] via-[#F6F7F9] to-transparent pt-8 pb-6 z-20 pointer-events-none">
-    <div class="max-w-[760px] mx-auto px-6 pointer-events-auto">
-      <!-- 追问问题 chip -->
-      <div id="followupArea" class="hidden mb-2 flex flex-wrap gap-2"></div>
-      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm px-4 pt-3 pb-2">
-        <textarea id="input" rows="1" placeholder="发消息…" class="w-full resize-none outline-none text-sm text-gray-800 placeholder:text-gray-400 leading-6 max-h-32 mb-1"></textarea>
-        <div class="flex items-center gap-1 pt-1.5 border-t border-gray-100">
-          <button class="w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 flex items-center justify-center text-base" title="附件">+</button>
-          <div class="w-px h-4 bg-gray-200 mx-1"></div>
-          <div id="scenarioBar" class="flex items-center gap-0.5 flex-1 overflow-x-auto scrollbar-thin"></div>
-          <button class="w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 flex items-center justify-center" title="语音">🎙️</button>
-        </div>
-      </div>
-      <div class="text-[11px] text-gray-400 text-center mt-2">学情助手 · 内容由 AI 生成,仅供教学参考</div>
-    </div>
-  </footer>
 </div>
 
 <script>
@@ -89,6 +99,24 @@
 const $ = (sel,root=document)=>root.querySelector(sel);
 const chat = $('#chatInner');
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
+let session = 0;
+
+function resetToHome(){
+  closeDrawer();
+  chat.innerHTML = '';
+  $('#input').value = '';
+  const w = $('#welcome');
+  w.classList.remove('hidden');
+  w.style.opacity = '1';
+  chat.classList.add('hidden');
+  $('#chatArea').scrollTop = 0;
+}
+
+function startNewConversation(){
+  session++;
+  resetToHome();
+  main(session);
+}
 
 function scrollBottom(){
   const a = $('#chatArea');
@@ -134,23 +162,57 @@ function thinking(){
   return wrap;
 }
 
-/* ============== 首屏:预设问题 + 场景栏(豆包风) ============== */
+/* ============== 首屏:预设问题(5 种意图) ============== */
+const intentMeta = {
+  single_full:    {label:'单任务 · 信息充分', cls:'intent-single_full',    desc:'参数齐全,直接执行'},
+  single_lack:    {label:'单任务 · 信息不足', cls:'intent-single_lack',    desc:'缺关键信息,先澄清'},
+  multi_parallel: {label:'多任务 · 无依赖',   cls:'intent-multi_parallel', desc:'可并行,同时推进'},
+  multi_depend:   {label:'多任务 · 有依赖',   cls:'intent-multi_depend',   desc:'前序结果供后续使用'},
+  other:          {label:'其他',             cls:'intent-other',          desc:'闲聊问候,直接回复'},
+};
+
 const presetQuestions = [
-  {id:'lesson',  text:'根据本周作业生成班级讲评课件', dynamic:true},
-  {id:'paper',   text:'出一份 2026 北京中考数学模拟卷', dynamic:false},
-  {id:'grading', text:'帮我批阅初二(3)班本次周记作业',  dynamic:false},
+  {id:'single_full',    text:'导出初二(3)班 5 月月考成绩 Excel',           intentType:'single_full'},
+  {id:'single_lack',    text:'帮我分析一下班级学情',                         intentType:'single_lack'},
+  {id:'multi_parallel', text:'同时出一份数学卷和一份语文阅读练习',             intentType:'multi_parallel'},
+  {id:'multi_depend',   text:'根据本周作业生成班级讲评课件',                   intentType:'multi_depend', dynamic:true},
+  {id:'other',          text:'你好',                                         intentType:'other'},
 ];
 
-/* ============== 三个场景的剧本 ============== */
+/* ============== 五个意图的剧本 ============== */
 const scripts = {
-  // 场景 1:生成讲评课件
-  lesson: {
+  // ① 单任务 · 信息充分 —— 直接执行,无需澄清
+  single_full: {
+    plan: '收到。参数齐全,我直接帮你导出 ✨\n\n  1. 拉取初二(3)班 5 月月考成绩 → 生成 Excel',
+    tasks: [
+      {
+        title:'导出月考成绩 Excel', icon:'📊',
+        logs:[
+          '已连接教务系统,读取初二(3)班 5 月月考数据',
+          '共 42 名学生,6 科成绩 + 排名',
+          '正在生成 Excel(含班级均分、分段统计)…',
+        ],
+        summary: 'Excel 已生成,包含 42 名学生的 6 科成绩、班级排名和分段统计表,可直接下载或转发给家长。',
+      },
+    ],
+    reply:'5 月月考成绩表已导出,42 人 × 6 科,含排名与分段统计。已在右侧预览 👉',
+    file: {
+      title:'初二(3)班 · 5 月月考成绩.xlsx',
+      meta:'42 人 · 6 科 · 含排名',
+      icon:'📊',
+      preview:'export',
+    },
+    followups:['按分数段筛选待辅导学生','和上次月考做对比','导出 PDF 版给家长'],
+  },
+
+  // ② 单任务 · 信息不足 —— 先澄清再执行
+  single_lack: {
     clarify: {
-      question: '好的。你这次想分析哪个班级?',
-      options: ['初二(3)班','初二(5)班','初二(7)班'],
+      question: '好的。分析学情需要先确认范围,你想看哪个班? 关注哪段时间?',
+      options: ['初二(3)班 · 近 7 天','初二(5)班 · 近 7 天','初二(3)班 · 本学期'],
       customPlaceholder: '比如:初三(2)班,只看作文部分',
     },
-    plan: '明白了。我把这次任务拆成 2 步,马上开始 ✨\n\n  1. 分析班级学情 —— 汇总近期作业,定位高频错题\n  2. 生成讲评课件 —— 按错题分类输出 HTML 课件',
+    plan: '明白了。这次只做一步:汇总学情并输出分析报告 ✨\n\n  1. 分析班级学情 —— 汇总作业数据,定位共性问题',
     tasks: [
       {
         title:'分析班级学情', icon:'📊',
@@ -158,7 +220,72 @@ const scripts = {
           '已读取初二(3)班近 7 天 35 份作业、12 篇周记',
           '正在比对常见问题模式…',
         ],
-        summary: '我看了 35 份作业和 12 篇周记,班级最突出的有 3 个共性问题:议论文论据偏单一(18 篇反复用同样的人物)、错别字「即/既」混用(11 处)、开头偏弱(9 篇)。这三个会作为讲评课件的主体内容。',
+        summary: '近 7 天共 35 份作业、12 篇周记。班级最突出的 3 个共性问题:论据偏单一(18 篇)、「即/既」混用(11 处)、开头偏弱(9 篇)。',
+      },
+    ],
+    reply:'学情分析完成。3 个共性问题已整理成报告,可在右侧查看详情 👉',
+    file: {
+      title:'初二(3)班 · 近 7 天学情分析报告.html',
+      meta:'35 份作业 · 3 个共性问题',
+      icon:'📋',
+      preview:'analysis',
+    },
+    followups:['这些问题的讲评建议是什么?','和上周对比有变化吗?','针对薄弱项出专项练习'],
+  },
+
+  // ③ 多任务 · 无依赖 —— 并行执行
+  multi_parallel: {
+    clarify: {
+      question: '好的。两份卷子难度怎么定?',
+      options: ['都是常规难度','数学拔高 + 语文基础','都按中等难度'],
+      customPlaceholder: '比如:数学 80 分钟,语文 40 分钟',
+    },
+    plan: '收到。数学卷和语文练习互不依赖,我会同时推进 ✨\n\n  ⚡ 并行任务 A: 组数学模拟卷\n  ⚡ 并行任务 B: 出语文阅读练习',
+    parallel: true,
+    tasks: [
+      {
+        title:'组数学模拟卷', icon:'🧪',
+        logs:[
+          '已对齐 2026 北京中考考纲',
+          '抽取 20 道题(选择 8 + 填空 6 + 解答 6)',
+        ],
+        summary: '数学卷完成,20 题、120 分钟、难度系数 0.65。',
+      },
+      {
+        title:'出语文阅读练习', icon:'📖',
+        logs:[
+          '已选取 2 篇记叙文 + 1 篇议论文',
+          '生成 15 道阅读理解题(含答案解析)',
+        ],
+        summary: '语文练习完成,3 篇阅读、15 道题,侧重主旨概括与赏析。',
+      },
+    ],
+    reply:'两份材料都已生成,数学卷和语文练习互不依赖,已并行完成。右侧可切换预览 👉',
+    file: {
+      title:'数学模拟卷 + 语文阅读练习',
+      meta:'2 份文件 · 并行生成',
+      icon:'📚',
+      preview:'parallel',
+    },
+    followups:['把数学第 25 题换一道','语文再加一篇文言文','两份合并成一个 ZIP'],
+  },
+
+  // ④ 多任务 · 有依赖 —— 串行执行(原 lesson 场景)
+  multi_depend: {
+    clarify: {
+      question: '好的。你这次想分析哪个班级?',
+      options: ['初二(3)班','初二(5)班','初二(7)班'],
+      customPlaceholder: '比如:初三(2)班,只看作文部分',
+    },
+    plan: '明白了。第二步依赖第一步的分析结果,我会按顺序执行 ✨\n\n  1. 分析班级学情 —— 汇总近期作业,定位高频错题\n  2. 生成讲评课件 —— 基于学情结果输出 HTML 课件',
+    tasks: [
+      {
+        title:'分析班级学情', icon:'📊',
+        logs:[
+          '已读取初二(3)班近 7 天 35 份作业、12 篇周记',
+          '正在比对常见问题模式…',
+        ],
+        summary: '我看了 35 份作业和 12 篇周记,班级最突出的有 3 个共性问题:议论文论据偏单一(18 篇)、错别字「即/既」混用(11 处)、开头偏弱(9 篇)。这三个会作为讲评课件的主体内容。',
       },
       {
         title:'生成讲评课件', icon:'📝',
@@ -169,113 +296,20 @@ const scripts = {
         summary: '课件已经做好,共 8 页,围绕刚才那 3 个问题展开,包含整体表现概览、逐题剖析、范文对照和课后练习,适合一节课讲完。',
       },
     ],
-    reply:'课件已生成,共 8 页,涵盖班级整体表现、3 个高频问题剖析和课后练习。已在右侧打开预览,可以直接查看 👉',
+    reply:'课件已生成,共 8 页,涵盖班级整体表现、3 个高频问题剖析和课后练习。已在右侧打开预览 👉',
     file: {
       title:'初二(3)班 · 议论文讲评课件.html',
       meta:'8 页 · 由学情助手生成',
       icon:'📄',
       preview:'lesson',
     },
-    followups:[
-      '这些错题对应哪些知识点?',
-      '再给一份学生版课后练习',
-      '把课件导出成 PDF',
-    ],
+    followups:['这些错题对应哪些知识点?','再给一份学生版课后练习','把课件导出成 PDF'],
   },
 
-  // 场景 2:出试卷
-  paper: {
-    clarify: {
-      question: '好的,先确认一下范围。这份卷子目标是哪个层次的学生?',
-      options: ['基础巩固(平均分 70-80)','常规练习(80-90)','拔高冲刺(90+)'],
-      customPlaceholder: '比如:覆盖一二模真题难度,80 分钟卷',
-    },
-    plan: '收到。出一份合规的中考模拟卷,我会走 3 步 ✨\n\n  1. 拉取 2026 北京中考考纲与近 3 年真题分布\n  2. 按知识点和难度抽题、组卷\n  3. 生成试卷 HTML(含答题卡 + 参考答案)',
-    tasks: [
-      {
-        title:'对齐考纲 + 真题分布', icon:'📚',
-        logs:[
-          '已拉取 2026 北京中考考纲(6 模块 27 考点)',
-          '已分析近 3 年真题分布…',
-        ],
-        summary: '对齐了 2026 北京中考考纲和近三年真题。出现频次最高的是函数综合、几何动点、概率统计、二次方程和圆这 5 个考点,本次组卷会向它们倾斜。',
-      },
-      {
-        title:'按知识点组卷', icon:'🎯',
-        logs:[
-          '已抽取 20 道题(选择 8 + 填空 6 + 解答 6)',
-          '正在生成参考答案与评分细则…',
-        ],
-        summary: '组卷完成,共 20 道题,选择 8 道、填空 6 道、解答 6 道,其中 2 道压轴题。难度系数 0.65,接近北京中考常规模拟卷水平。',
-      },
-      {
-        title:'渲染试卷文件', icon:'📄',
-        logs:[
-          '已生成正文 + 答题卡',
-          '正在生成答案解析…',
-        ],
-        summary: '试卷已经渲染成 HTML,包含正文 4 页、答题卡 1 页,以及完整的答案解析,可以直接打印使用。',
-      },
-    ],
-    reply:'试卷已生成。20 道题、120 分钟、总分 100 分,难度系数 0.65,接近 2024 年北京中考真题。已在右侧预览,需要换题或调难度可以告诉我 👉',
-    file: {
-      title:'2026 北京中考数学模拟卷(常规版).html',
-      meta:'20 题 · 120 分钟 · 含答案解析',
-      icon:'🧪',
-      preview:'paper',
-    },
-    followups:[
-      '把第 25 题难度再降一点',
-      '生成对应的答题卡 PDF',
-      '出一份基础版给后进生',
-    ],
-  },
-
-  // 场景 3:批阅作业
-  grading: {
-    clarify: {
-      question: '好的。这次批阅的重点放在哪里?',
-      options: ['内容立意为主','语言表达为主','结构与逻辑为主','全维度综合评分'],
-      customPlaceholder: '比如:重点抓错别字 + 段落衔接',
-    },
-    plan: '明白。本次批阅 35 份周记,我会按下面 3 步进行 ✨\n\n  1. 调用 OCR 识别手写作文图片\n  2. 逐篇按四维度打分(内容/语言/结构/书写)\n  3. 汇总班级整体反馈与个性化评语',
-    tasks: [
-      {
-        title:'OCR 识别手写作文', icon:'🔍',
-        progress: {to:35, label:'已识别', unit:'份'},
-        logs:[
-          '识别完成,平均置信度 96.2%',
-        ],
-        summary: '35 份周记全部识别完成,平均置信度 96.2%。其中有 2 份字迹偏模糊,我已经标记出来,建议你最后过一眼。',
-      },
-      {
-        title:'四维度逐篇评分', icon:'✍️',
-        logs:[
-          '已加载量规(内容 40 + 语言 30 + 结构 20 + 书写 10)',
-          '张三 38 优秀  ·  李华 26 待提升  ·  王芳 35 良好  ·  …',
-        ],
-        summary: '按四维度量规给 35 份周记打了分,班级平均 31.4 / 50。优秀 8 人、良好 18 人、待提升 9 人,每篇都有针对性评语。',
-      },
-      {
-        title:'汇总班级反馈', icon:'📊',
-        logs:[
-          '已聚合高频问题,生成讲评建议',
-        ],
-        summary: '把全班共性问题做了汇总。最突出的三个是:开头平淡(11 篇)、错别字(7 处)、详略失衡(6 篇),后面的讲评建议会重点覆盖这几项。',
-      },
-    ],
-    reply:'35 份周记已批阅完成,平均 31.4 / 50 分,优秀率 23%。我把每生评语和班级整体反馈整理成了一份报告,已在右侧打开 👉',
-    file: {
-      title:'初二(3)班 · 周记批阅报告.html',
-      meta:'35 份 · 含个性化评语 · 含班级反馈',
-      icon:'📋',
-      preview:'grading',
-    },
-    followups:[
-      '把待提升的 9 位同学单独列出来',
-      '为开头偏弱的同学生成专项练习',
-      '导出每生评语成 Word',
-    ],
+  // ⑤ 其他 —— 闲聊问候,直接回复,不调用工具
+  other: {
+    reply:'你好!我是学情助手,专帮老师分析班级学情、出卷组题、批阅作业、生成讲评课件。有什么教学上的事,直接告诉我就好 😊',
+    followups:['帮我分析班级学情','根据本周作业生成讲评课件','出一份数学模拟卷'],
   },
 };
 
@@ -290,15 +324,17 @@ const scenarios = [
 ];
 
 function renderHome(){
-  // 预设问题
   const wrap = $('#presetChips');
-  wrap.innerHTML = presetQuestions.map((q,i)=>`
-    <button data-i="${i}" class="chip px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-transparent rounded-full text-sm text-gray-700 transition">
-      ${q.dynamic?'<span class="text-amber-500 mr-1">✨</span>':''}${q.text}
-    </button>
-  `).join('');
+  wrap.innerHTML = presetQuestions.map((q,i)=>{
+    const meta = intentMeta[q.intentType];
+    return `
+    <button data-i="${i}" class="chip w-full flex flex-col items-start gap-1.5 px-4 py-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-2xl text-left transition">
+      <span class="intent-badge ${meta.cls}">${meta.label}</span>
+      <span class="text-sm text-gray-800 leading-snug">${q.dynamic?'<span class="text-amber-500 mr-0.5">✨</span>':''}${q.text}</span>
+      <span class="text-[11px] text-gray-400">${meta.desc}</span>
+    </button>`;
+  }).join('');
 
-  // 场景栏
   const bar = $('#scenarioBar');
   bar.innerHTML = scenarios.map(s=>`
     <button class="px-2.5 py-1 rounded-lg hover:bg-gray-100 text-gray-600 text-xs flex items-center gap-1 shrink-0" title="${s.label}">
@@ -396,6 +432,30 @@ async function step6_execute(tasks){
   }
 }
 
+/* ============== 步骤 6b:并行任务执行 ============== */
+async function step6_executeParallel(tasks){
+  const body = appendAIWrap();
+  const hint = document.createElement('div');
+  hint.className = 'text-xs text-blue-500 mb-2 flex items-center gap-1.5 fade-in';
+  hint.innerHTML = '<span>⚡</span><span>两个任务互不依赖,正在并行执行…</span>';
+  body.appendChild(hint);
+
+  const group = document.createElement('div');
+  group.className = 'parallel-group';
+  body.appendChild(group);
+
+  const cols = tasks.map(t=>{
+    const col = document.createElement('div');
+    col.className = 'space-y-0';
+    group.appendChild(col);
+    return col;
+  });
+
+  await Promise.all(tasks.map((t,i)=>runSubTask(cols[i], t, {compact:true})));
+  scrollBottom();
+  await sleep(450);
+}
+
 function renderSummary(text){
   if(!text) return '';
   return `
@@ -403,14 +463,14 @@ function renderSummary(text){
   `;
 }
 
-async function runSubTask(parent, task){
+async function runSubTask(parent, task, opts={}){
   const card = document.createElement('div');
   card.className = 'border border-gray-200 rounded-xl bg-white overflow-hidden fade-in';
   card.innerHTML = `
     <div class="header flex items-center gap-2.5 px-4 py-3 ${task.logs?.length||task.progress?'border-b border-gray-100':''}">
       <div class="status w-4 h-4 flex items-center justify-center"><div class="spinner"></div></div>
       <div class="text-sm font-medium text-gray-800 flex-1">${task.icon} ${task.title}</div>
-      <div class="state text-xs text-gray-400">运行中</div>
+      <div class="state text-xs text-gray-400">${opts.compact?'并行':'运行中'}</div>
       <div class="caret hidden text-gray-400 text-xs select-none">▾</div>
     </div>
     <div class="logs px-4 py-2.5 space-y-1 text-[13px] text-gray-500 leading-6 bg-gray-50/50"></div>
@@ -548,29 +608,90 @@ async function step7_reply(scriptObj){
 
 /* ============== 步骤 8:追问问题 ============== */
 function step8_followups(list){
-  const area = $('#followupArea');
-  area.innerHTML = `<div class="w-full text-xs text-gray-400 mb-1">💡 你可能还想问</div>` +
-    list.map(f=>`<button class="chip px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600">${f}</button>`).join('');
-  area.classList.remove('hidden');
-  area.classList.add('flex','flex-wrap','gap-2');
+  const area = document.createElement('div');
+  area.className = 'fade-in pt-2';
+  area.innerHTML = `
+    <div class="text-xs text-gray-400 mb-2">💡 你可能还想问</div>
+    <div class="flex flex-wrap gap-2">
+      ${list.map(f=>`<button class="chip px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600">${f}</button>`).join('')}
+    </div>`;
+  chat.appendChild(area);
+  scrollBottom();
 }
 
 /* ============== 抽屉 ============== */
 function openDrawer(file){
-  $('#drawer').classList.remove('closed');
+  const drawer = $('#drawer');
+  drawer.classList.remove('closed');
+  drawer.classList.add('open');
   if(file){
     $('#drawerTitle').textContent = `${file.icon} ${file.title}`;
     $('#drawerBody').innerHTML = mockPreview(file.preview);
   }
 }
-function closeDrawer(){ $('#drawer').classList.add('closed'); }
+function closeDrawer(){
+  const drawer = $('#drawer');
+  drawer.classList.add('closed');
+  drawer.classList.remove('open');
+}
 
 /* ============== Mock 预览(三套模板)============== */
 function mockPreview(kind){
-  if(kind === 'lesson') return mockSlidesLesson();
-  if(kind === 'paper')  return mockPaper();
-  if(kind === 'grading')return mockGrading();
+  if(kind === 'lesson')   return mockSlidesLesson();
+  if(kind === 'paper')    return mockPaper();
+  if(kind === 'grading')  return mockGrading();
+  if(kind === 'export')   return mockExport();
+  if(kind === 'analysis') return mockAnalysis();
+  if(kind === 'parallel') return mockParallel();
   return '';
+}
+
+function mockExport(){
+  return `
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-4">
+      <div class="text-lg font-semibold text-gray-800 mb-1">初二(3)班 · 5 月月考成绩</div>
+      <div class="text-xs text-gray-400 mb-4">42 人 · 6 科 · 导出时间 2026-05-25</div>
+      <table class="w-full text-sm">
+        <thead><tr class="text-xs text-gray-400 border-b">
+          <th class="text-left py-2">学号</th><th class="text-left py-2">姓名</th>
+          <th class="text-left py-2">语文</th><th class="text-left py-2">数学</th>
+          <th class="text-left py-2">英语</th><th class="text-left py-2">总分</th><th class="text-left py-2">排名</th>
+        </tr></thead>
+        <tbody class="text-gray-700">
+          <tr class="border-b border-gray-100"><td class="py-1.5">0301</td><td>张三</td><td>92</td><td>88</td><td>95</td><td>275</td><td>3</td></tr>
+          <tr class="border-b border-gray-100"><td class="py-1.5">0302</td><td>李华</td><td>78</td><td>72</td><td>80</td><td>230</td><td>28</td></tr>
+          <tr class="border-b border-gray-100"><td class="py-1.5">0303</td><td>王芳</td><td>85</td><td>90</td><td>88</td><td>263</td><td>8</td></tr>
+        </tbody>
+      </table>
+      <div class="text-xs text-gray-400 mt-3">… 共 42 行 …</div>
+    </div>`;
+}
+
+function mockAnalysis(){
+  return `
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-4">
+      <div class="text-lg font-semibold text-gray-800 mb-1">学情分析报告</div>
+      <div class="text-xs text-gray-400 mb-4">35 份作业 · 近 7 天</div>
+      <div class="space-y-3">
+        <div><div class="flex justify-between text-sm mb-1"><span>论据单一</span><span class="text-red-500">51%</span></div><div class="h-2 bg-gray-100 rounded"><div class="h-2 bg-red-400 rounded" style="width:51%"></div></div></div>
+        <div><div class="flex justify-between text-sm mb-1"><span>错别字</span><span class="text-amber-500">31%</span></div><div class="h-2 bg-gray-100 rounded"><div class="h-2 bg-amber-400 rounded" style="width:31%"></div></div></div>
+        <div><div class="flex justify-between text-sm mb-1"><span>开头偏弱</span><span class="text-blue-500">26%</span></div><div class="h-2 bg-gray-100 rounded"><div class="h-2 bg-blue-400 rounded" style="width:26%"></div></div></div>
+      </div>
+    </div>`;
+}
+
+function mockParallel(){
+  return `
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="text-sm font-medium text-gray-800 mb-2">🧪 数学模拟卷</div>
+        <div class="text-xs text-gray-500">20 题 · 120 分钟 · 难度 0.65</div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="text-sm font-medium text-gray-800 mb-2">📖 语文阅读练习</div>
+        <div class="text-xs text-gray-500">3 篇阅读 · 15 道题 · 含解析</div>
+      </div>
+    </div>`;
 }
 
 function mockSlidesLesson(){
@@ -723,37 +844,98 @@ function mockGrading(){
   `;
 }
 
-/* ============== 主流程 ============== */
-async function main(){
-  // 首屏:等用户从预设问题选一个,拿到 {id, text}
-  const preset = await renderHome();
-  await enterChat();
-
-  // 拿到该场景的剧本
-  const s = scripts[preset.id];
-
-  // 用户消息上屏
-  step3_userMsg(preset.text);
-  await sleep(600);
-
-  // 意图澄清
-  const cls = await step4_clarify(s.clarify);
-  await sleep(300);
-  step3_userMsg(cls);
+/* ============== 其他:纯对话回复(无工具/子 agent) ============== */
+async function runSimpleChat(scriptObj, sid){
+  const body = appendAIWrap();
+  const p = document.createElement('div');
+  p.className = 'text-[15px] text-gray-800 leading-7';
+  body.appendChild(p);
+  await typewriter(p, scriptObj.reply);
+  if(sid !== session) return;
   await sleep(500);
-
-  // 任务规划 → 执行 → 回复 → 追问
-  await step5_plan(s.plan);
-  await step6_execute(s.tasks);
-  await sleep(400);
-
-  await step7_reply(s);
-  await sleep(500);
-  step8_followups(s.followups);
+  if(sid !== session) return;
+  step8_followups(scriptObj.followups);
   scrollBottom();
 }
 
-main();
+/* ============== 通用收尾:规划 → 执行 → 回复 ============== */
+async function runTail(scriptObj, sid){
+  await step5_plan(scriptObj.plan);
+  if(sid !== session) return;
+  if(scriptObj.parallel){
+    await step6_executeParallel(scriptObj.tasks);
+  }else{
+    await step6_execute(scriptObj.tasks);
+  }
+  if(sid !== session) return;
+  await sleep(400);
+  if(sid !== session) return;
+  await step7_reply(scriptObj);
+  if(sid !== session) return;
+  await sleep(500);
+  if(sid !== session) return;
+  step8_followups(scriptObj.followups);
+  scrollBottom();
+}
+
+/* ============== 主流程:按意图类型路由 ============== */
+async function main(sid){
+  const preset = await renderHome();
+  if(sid !== session) return;
+  await enterChat();
+  if(sid !== session) return;
+
+  const intentType = preset.intentType;
+  const s = scripts[preset.id];
+
+  step3_userMsg(preset.text);
+  await sleep(600);
+  if(sid !== session) return;
+
+  switch(intentType){
+    case 'single_full': {
+      await runTail(s, sid);
+      break;
+    }
+    case 'single_lack': {
+      const cls = await step4_clarify(s.clarify);
+      if(sid !== session) return;
+      await sleep(300);
+      step3_userMsg(cls);
+      await sleep(500);
+      if(sid !== session) return;
+      await runTail(s, sid);
+      break;
+    }
+    case 'multi_parallel': {
+      const cls = await step4_clarify(s.clarify);
+      if(sid !== session) return;
+      await sleep(300);
+      step3_userMsg(cls);
+      await sleep(500);
+      if(sid !== session) return;
+      await runTail(s, sid);
+      break;
+    }
+    case 'multi_depend': {
+      const cls = await step4_clarify(s.clarify);
+      if(sid !== session) return;
+      await sleep(300);
+      step3_userMsg(cls);
+      await sleep(500);
+      if(sid !== session) return;
+      await runTail(s, sid);
+      break;
+    }
+    case 'other': {
+      await runSimpleChat(s, sid);
+      break;
+    }
+  }
+}
+
+$('#newChatBtn').onclick = startNewConversation;
+main(++session);
 </script>
 </body>
 </html>
