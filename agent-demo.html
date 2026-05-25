@@ -975,5 +975,16 @@ async function main(sid){
 $('#newChatBtn').onclick = startNewConversation;
 main(++session);
 </script>
+
+<!-- pin-comments: 多人评论 -->
+<script>
+  window.PIN_COMMENTS = {
+    url: 'https://tszznklsfbzksqpyyknk.supabase.co',
+    anonKey: 'sb_publishable_6o7nXCJ_BDOio3PCWcZ0jQ_SZduYF2l',
+    projectKey: 'shared-html-demo-comments'
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./shared/pin-comments.js"></script>
 </body>
 </html>
