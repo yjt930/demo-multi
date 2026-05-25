@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>学情助手 · Demo</title>
+<title>飞象AI助手 · Demo</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   html,body{height:100%;}
@@ -34,6 +34,10 @@
   .intent-multi_depend{background:#EEF2FF;color:#4338CA;}
   .intent-other{background:#F3F4F6;color:#6B7280;}
   .parallel-group{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .feedback-btn{transition:all .15s ease;}
+  .feedback-btn:hover{border-color:#C7D2FE;background:#EEF2FF;color:#4338CA;}
+  .feedback-btn.active-like{border-color:#93C5FD;background:#EFF6FF;color:#2563EB;}
+  .feedback-btn.active-dislike{border-color:#FCA5A5;background:#FEF2F2;color:#DC2626;}
   @media(max-width:640px){.parallel-group{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -42,8 +46,8 @@
   <!-- 顶栏 -->
   <header class="h-14 px-6 flex items-center justify-between bg-white border-b border-gray-100">
     <div class="flex items-center gap-2">
-      <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">学</div>
-      <div class="font-semibold text-gray-800">学情助手</div>
+      <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">象</div>
+      <div class="font-semibold text-gray-800">飞象AI助手</div>
       <span class="text-xs text-gray-400 ml-1">Beta · 教师专属</span>
     </div>
     <button id="newChatBtn" class="text-gray-400 hover:text-gray-600 text-xs">+ 新对话</button>
@@ -78,7 +82,7 @@
               <button class="w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 flex items-center justify-center" title="语音">🎙️</button>
             </div>
           </div>
-          <div class="text-[11px] text-gray-400 text-center mt-2">学情助手 · 内容由 AI 生成,仅供教学参考</div>
+          <div class="text-[11px] text-gray-400 text-center mt-2">飞象AI助手 · 内容由 AI 生成,仅供教学参考</div>
         </div>
       </footer>
     </div>
@@ -124,7 +128,7 @@ function scrollBottom(){
 }
 
 function aiAvatar(){
-  return `<div class="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">学</div>`;
+  return `<div class="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">象</div>`;
 }
 
 /* ============== 渲染原语 ============== */
@@ -160,6 +164,38 @@ function thinking(){
   wrap.innerHTML = `<div class="text-gray-400 text-sm py-1"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
   scrollBottom();
   return wrap;
+}
+
+function renderFeedbackActions(body){
+  const wrap = document.createElement('div');
+  wrap.className = 'feedback-actions flex items-center gap-2 pt-1 fade-in';
+  wrap.innerHTML = `
+    <button type="button" class="feedback-btn like-btn px-2.5 py-1.5 rounded-full border border-gray-200 bg-white text-xs text-gray-500 flex items-center gap-1" aria-label="点赞" aria-pressed="false">
+      <span>👍</span><span>有帮助</span>
+    </button>
+    <button type="button" class="feedback-btn dislike-btn px-2.5 py-1.5 rounded-full border border-gray-200 bg-white text-xs text-gray-500 flex items-center gap-1" aria-label="点灭" aria-pressed="false">
+      <span>👎</span><span>不准确</span>
+    </button>
+    <span class="feedback-tip text-xs text-gray-400 opacity-0 transition-opacity">已收到反馈</span>
+  `;
+
+  const likeBtn = wrap.querySelector('.like-btn');
+  const dislikeBtn = wrap.querySelector('.dislike-btn');
+  const tip = wrap.querySelector('.feedback-tip');
+
+  const setFeedback = (choice)=>{
+    const isLike = choice === 'like';
+    likeBtn.classList.toggle('active-like', isLike);
+    dislikeBtn.classList.toggle('active-dislike', !isLike);
+    likeBtn.setAttribute('aria-pressed', String(isLike));
+    dislikeBtn.setAttribute('aria-pressed', String(!isLike));
+    tip.classList.remove('opacity-0');
+  };
+
+  likeBtn.onclick = ()=>setFeedback('like');
+  dislikeBtn.onclick = ()=>setFeedback('dislike');
+  body.appendChild(wrap);
+  scrollBottom();
 }
 
 /* ============== 首屏:预设问题(5 种意图) ============== */
@@ -299,7 +335,7 @@ const scripts = {
     reply:'课件已生成,共 8 页,涵盖班级整体表现、3 个高频问题剖析和课后练习。已在右侧打开预览 👉',
     file: {
       title:'初二(3)班 · 议论文讲评课件.html',
-      meta:'8 页 · 由学情助手生成',
+      meta:'8 页 · 由飞象AI助手生成',
       icon:'📄',
       preview:'lesson',
     },
@@ -308,7 +344,7 @@ const scripts = {
 
   // ⑤ 其他 —— 闲聊问候,直接回复,不调用工具
   other: {
-    reply:'你好!我是学情助手,专帮老师分析班级学情、出卷组题、批阅作业、生成讲评课件。有什么教学上的事,直接告诉我就好 😊',
+    reply:'你好!我是飞象AI助手,专帮老师分析班级学情、出卷组题、批阅作业、生成讲评课件。有什么教学上的事,直接告诉我就好 😊',
     followups:['帮我分析班级学情','根据本周作业生成讲评课件','出一份数学模拟卷'],
   },
 };
@@ -587,6 +623,7 @@ async function step7_reply(scriptObj){
   p.className = 'text-[15px] text-gray-800 leading-7';
   body.appendChild(p);
   await typewriter(p, scriptObj.reply);
+  renderFeedbackActions(body);
 
   const f = scriptObj.file;
   const fileCard = document.createElement('button');
@@ -705,7 +742,7 @@ function mockSlidesLesson(){
       <div class="text-center">
         <div class="text-2xl font-bold text-gray-800 mb-2">议论文写作讲评</div>
         <div class="text-sm text-gray-500">初二(3)班 · 2026 春季</div>
-        <div class="text-xs text-gray-400 mt-6">学情助手生成</div>
+        <div class="text-xs text-gray-400 mt-6">飞象AI助手生成</div>
       </div>`),
     slide('整体表现 · 2/8',`
       <div class="space-y-2 text-sm text-gray-700">
@@ -851,6 +888,7 @@ async function runSimpleChat(scriptObj, sid){
   p.className = 'text-[15px] text-gray-800 leading-7';
   body.appendChild(p);
   await typewriter(p, scriptObj.reply);
+  renderFeedbackActions(body);
   if(sid !== session) return;
   await sleep(500);
   if(sid !== session) return;
