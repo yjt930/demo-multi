@@ -52,18 +52,7 @@
   .kb-file-row{transition:all .15s ease;}
   .kb-file-row:hover{border-color:#93C5FD;background:#EFF6FF;}
   .clarify-option-block{transition:max-height .28s ease,padding .22s ease,border-color .22s ease;overflow:hidden;}
-  .clarify-option-block .clarify-options,
-  .clarify-option-block .clarify-custom-panel{transition:max-height .28s ease,opacity .22s ease,margin .22s ease,padding .22s ease;overflow:hidden;}
-  .clarify-option-block .clarify-summary{display:none;}
-  .clarify-option-block.is-collapsed{padding-top:.625rem;padding-bottom:.625rem;}
-  .clarify-option-block.is-collapsed .clarify-options,
-  .clarify-option-block.is-collapsed .clarify-custom-panel{max-height:0!important;opacity:0;margin:0!important;padding:0!important;pointer-events:none;}
-  .clarify-option-block.is-collapsed .clarify-summary{display:flex;}
-  .clarify-option-block.is-collapsed.is-expanded .clarify-options{max-height:none!important;opacity:1;margin:0!important;padding:0!important;pointer-events:auto;}
-  .clarify-option-block.is-collapsed.is-expanded .clarify-custom-panel{max-height:none!important;opacity:1;pointer-events:auto;}
-  .clarify-option-block.is-collapsed.is-expanded .clarify-summary{display:none;}
   .clarify-option-block.is-hiding{max-height:0!important;opacity:0;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-color:transparent;pointer-events:none;}
-  .clarify-option-block .chip.is-selected{border-color:#93C5FD;background:#EFF6FF;color:#1D4ED8;}
   @media(max-width:640px){.parallel-group{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -323,6 +312,7 @@ function thinking(){
 
 async function showModelLoading(body, opts={}){
   const minMs = opts.minMs ?? 4200;
+  const simple = opts.simple ?? false;
   const row = document.createElement('div');
   row.className = 'model-loading text-gray-400 text-sm py-1 flex items-center gap-2';
   row.innerHTML = `
@@ -334,22 +324,24 @@ async function showModelLoading(body, opts={}){
 
   const dotsEl = row.querySelector('.loading-dots');
   const textEl = row.querySelector('.loading-text');
+  let timerIntent;
+  let timerRunning;
 
-  // 0-1s：仅展示 "..." 加载态
-  const timerIntent = setTimeout(()=>{
-    if(!row.isConnected) return;
-    dotsEl?.classList.add('hidden');
-    textEl?.classList.remove('hidden');
-    if(textEl) textEl.textContent = '识别用户意图，分析任务中';
-    scrollBottom();
-  }, 1000);
+  if(!simple){
+    timerIntent = setTimeout(()=>{
+      if(!row.isConnected) return;
+      dotsEl?.classList.add('hidden');
+      textEl?.classList.remove('hidden');
+      if(textEl) textEl.textContent = '识别用户意图，分析任务中';
+      scrollBottom();
+    }, 1000);
 
-  // 1-3s：识别意图；3s 后切换为执行中
-  const timerRunning = setTimeout(()=>{
-    if(!row.isConnected) return;
-    if(textEl) textEl.textContent = '执行中...';
-    scrollBottom();
-  }, 3000);
+    timerRunning = setTimeout(()=>{
+      if(!row.isConnected) return;
+      if(textEl) textEl.textContent = '执行中...';
+      scrollBottom();
+    }, 3000);
+  }
 
   await sleep(minMs);
   clearTimeout(timerIntent);
@@ -722,39 +714,24 @@ function step3_userMsg(text){
   appendUser(text);
 }
 
-async function collapseClarifyOptions(block, selectedValue, opts={}){
+async function collapseClarifyOptions(block){
   if(!block || block.dataset.collapsed === 'true') return;
   block.dataset.collapsed = 'true';
-
-  if(opts.hideAfterSelect){
-    block.style.maxHeight = block.scrollHeight + 'px';
-    await sleep(20);
-    block.classList.add('is-hiding');
-    await sleep(280);
-    block.remove();
-    scrollBottom();
-    return;
-  }
-
-  const summaryEl = block.querySelector('.clarify-summary');
-  summaryEl.querySelector('.clarify-selected-text').textContent = selectedValue;
-
-  block.querySelectorAll('button[data-c]').forEach(btn=>{
-    btn.classList.toggle('is-selected', btn.dataset.c === selectedValue);
-  });
-
   block.style.maxHeight = block.scrollHeight + 'px';
   await sleep(20);
-  block.classList.add('is-collapsed');
+  block.classList.add('is-hiding');
   await sleep(280);
-  block.style.maxHeight = '';
+  block.remove();
   scrollBottom();
 }
 
 /* ============== 步骤 4:澄清 ============== */
 async function step4_clarify(clarify, opts={}){
   const body = appendAIWrap();
-  await showModelLoading(body, {minMs: 4200});
+  await showModelLoading(body, {
+    minMs: opts.simpleLoading ? 1200 : 4200,
+    simple: !!opts.simpleLoading,
+  });
   const p = document.createElement('div');
   p.className = 'text-[15px] text-gray-800 leading-7';
   body.appendChild(p);
@@ -779,24 +756,6 @@ async function step4_clarify(clarify, opts={}){
     <button id="customSubmit" class="px-3 py-2 bg-indigo-500 text-white text-sm rounded-lg">确定</button>
   `;
   optionBlock.appendChild(customPanel);
-
-  if(!opts.hideAfterSelect){
-    const summary = document.createElement('div');
-    summary.className = 'clarify-summary items-center justify-between gap-2';
-    summary.innerHTML = `
-      <span class="flex items-center gap-2 min-w-0 text-sm text-gray-700">
-        <span class="text-green-500 shrink-0">✓</span>
-        <span class="clarify-selected-text truncate"></span>
-      </span>
-      <button type="button" class="clarify-toggle shrink-0 text-xs text-blue-500 hover:text-blue-600">展开</button>
-    `;
-    summary.querySelector('.clarify-toggle').onclick = ()=>{
-      const expanded = optionBlock.classList.toggle('is-expanded');
-      summary.querySelector('.clarify-toggle').textContent = expanded ? '收起' : '展开';
-      scrollBottom();
-    };
-    optionBlock.appendChild(summary);
-  }
   body.appendChild(optionBlock);
   scrollBottom();
 
@@ -804,7 +763,7 @@ async function step4_clarify(clarify, opts={}){
     wrap.querySelectorAll('button[data-c]').forEach(btn=>{
       btn.onclick = async ()=>{
         wrap.querySelectorAll('button').forEach(b=>b.disabled=true);
-        await collapseClarifyOptions(optionBlock, btn.dataset.c, opts);
+        await collapseClarifyOptions(optionBlock);
         resolve(btn.dataset.c);
       };
     });
@@ -817,7 +776,7 @@ async function step4_clarify(clarify, opts={}){
       const v = customPanel.querySelector('input').value.trim();
       if(!v) return;
       wrap.querySelectorAll('button').forEach(b=>b.disabled=true);
-      await collapseClarifyOptions(optionBlock, v, opts);
+      await collapseClarifyOptions(optionBlock);
       resolve(v);
     };
   });
@@ -1508,7 +1467,7 @@ async function runTail(scriptObj, sid, opts={}){
   await step5_plan(scriptObj.plan, {withIntentLoading: !!opts.withIntentLoading});
   if(sid !== session) return;
   if(scriptObj.paramClarify){
-    const params = await step4_clarify(scriptObj.paramClarify);
+    const params = await step4_clarify(scriptObj.paramClarify, { simpleLoading: true });
     if(sid !== session) return;
     await sleep(300);
     step3_userMsg(params);
@@ -1556,7 +1515,7 @@ async function main(sid){
       break;
     }
     case 'single_lack': {
-      const cls = await step4_clarify(s.intentClarify, { hideAfterSelect: true });
+      const cls = await step4_clarify(s.intentClarify);
       if(sid !== session) return;
       await sleep(300);
       step3_userMsg(cls);
@@ -1566,7 +1525,7 @@ async function main(sid){
       break;
     }
     case 'multi_parallel': {
-      const cls = await step4_clarify(s.intentClarify, { hideAfterSelect: true });
+      const cls = await step4_clarify(s.intentClarify);
       if(sid !== session) return;
       await sleep(300);
       step3_userMsg(cls);
@@ -1576,7 +1535,7 @@ async function main(sid){
       break;
     }
     case 'multi_depend': {
-      const cls = await step4_clarify(s.intentClarify, { hideAfterSelect: true });
+      const cls = await step4_clarify(s.intentClarify);
       if(sid !== session) return;
       await sleep(300);
       step3_userMsg(cls);
