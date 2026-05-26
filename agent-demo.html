@@ -51,6 +51,19 @@
   .kb-modal{background:rgba(15,23,42,.28);backdrop-filter:blur(2px);}
   .kb-file-row{transition:all .15s ease;}
   .kb-file-row:hover{border-color:#93C5FD;background:#EFF6FF;}
+  .clarify-option-block{transition:max-height .28s ease,padding .22s ease,border-color .22s ease;overflow:hidden;}
+  .clarify-option-block .clarify-options,
+  .clarify-option-block .clarify-custom-panel{transition:max-height .28s ease,opacity .22s ease,margin .22s ease,padding .22s ease;overflow:hidden;}
+  .clarify-option-block .clarify-summary{display:none;}
+  .clarify-option-block.is-collapsed{padding-top:.625rem;padding-bottom:.625rem;}
+  .clarify-option-block.is-collapsed .clarify-options,
+  .clarify-option-block.is-collapsed .clarify-custom-panel{max-height:0!important;opacity:0;margin:0!important;padding:0!important;pointer-events:none;}
+  .clarify-option-block.is-collapsed .clarify-summary{display:flex;}
+  .clarify-option-block.is-collapsed.is-expanded .clarify-options{max-height:none!important;opacity:1;margin:0!important;padding:0!important;pointer-events:auto;}
+  .clarify-option-block.is-collapsed.is-expanded .clarify-custom-panel{max-height:none!important;opacity:1;pointer-events:auto;}
+  .clarify-option-block.is-collapsed.is-expanded .clarify-summary{display:none;}
+  .clarify-option-block.is-hiding{max-height:0!important;opacity:0;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-color:transparent;pointer-events:none;}
+  .clarify-option-block .chip.is-selected{border-color:#93C5FD;background:#EFF6FF;color:#1D4ED8;}
   @media(max-width:640px){.parallel-group{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -379,7 +392,7 @@ function renderFeedbackActions(body){
 /* ============== 首屏:预设问题(5 种意图) ============== */
 const intentMeta = {
   single_full:    {label:'单任务 · 信息充分', cls:'intent-single_full',    desc:'参数齐全,直接执行'},
-  single_lack:    {label:'单任务 · 信息不足', cls:'intent-single_lack',    desc:'缺关键信息,先澄清'},
+  single_lack:    {label:'单任务 · 信息不足', cls:'intent-single_lack',    desc:'缺关键信息,先确认再执行'},
   multi_parallel: {label:'多任务 · 无依赖',   cls:'intent-multi_parallel', desc:'可并行,同时推进'},
   multi_depend:   {label:'多任务 · 有依赖',   cls:'intent-multi_depend',   desc:'前序结果供后续使用'},
   other:          {label:'其他',             cls:'intent-other',          desc:'闲聊问候,直接回复'},
@@ -479,14 +492,19 @@ const scripts = {
     followups:['按分数段筛选待辅导学生','和上次月考做对比','导出 PDF 版给家长'],
   },
 
-  // ② 单任务 · 信息不足 —— 先澄清再执行
+  // ② 单任务 · 信息不足 —— 主 Agent 先澄清意图,规划后由子 Agent 补参数
   single_lack: {
-    clarify: {
-      question: '好的。分析学情需要先确认范围,你想看哪个班? 关注哪段时间?',
+    intentClarify: {
+      question: '你是希望我产出一份可直接查看的学情报告,还是后续还要继续生成讲评材料?',
+      options: ['先产出学情报告','先看共性问题,后续再生成材料','只要一句结论摘要'],
+      customPlaceholder: '比如:先给我适合教研会汇报的版本',
+    },
+    paramClarify: {
+      question: '分析学情需要先确认范围,你想看哪个班? 关注哪段时间?',
       options: ['初二(3)班 · 近 7 天','初二(5)班 · 近 7 天','初二(3)班 · 本学期'],
       customPlaceholder: '比如:初三(2)班,只看作文部分',
     },
-    plan: '明白了。这次只做一步:汇总学情并输出分析报告 ✨\n\n  1. 分析班级学情 —— 汇总作业数据,定位共性问题',
+    plan: '明白了。我会先汇总学情并输出分析报告 ✨\n\n  1. 确认班级和时间范围\n  2. 读取作业数据,定位共性问题\n  3. 输出学情报告',
     tasks: [
       {
         title:'分析班级学情', icon:'📊',
@@ -509,10 +527,15 @@ const scripts = {
     followups:['这些问题的讲评建议是什么?','和上周对比有变化吗?','针对薄弱项出专项练习'],
   },
 
-  // ③ 多任务 · 无依赖 —— 并行执行
+  // ③ 多任务 · 无依赖 —— 主 Agent 先澄清意图并规划,子 Agent 再补参数并行执行
   multi_parallel: {
-    clarify: {
-      question: '好的。两份卷子难度怎么定?',
+    intentClarify: {
+      question: '你是要分别生成「数学卷」和「语文阅读练习」两份材料,对吗?',
+      options: ['对,两个独立产物','合成一份跨学科练习','先数学,语文稍后'],
+      customPlaceholder: '比如:两个都要,但输出成一个 ZIP',
+    },
+    paramClarify: {
+      question: '两份练习的难度怎么定?',
       options: ['都是常规难度','数学拔高 + 语文基础','都按中等难度'],
       customPlaceholder: '比如:数学 80 分钟,语文 40 分钟',
     },
@@ -549,14 +572,19 @@ const scripts = {
     followups:['把数学第 25 题换一道','语文再加一篇文言文','两份合并成一个 ZIP'],
   },
 
-  // ④ 多任务 · 有依赖 —— 串行执行(原 lesson 场景)
+  // ④ 多任务 · 有依赖 —— 主 Agent 先澄清意图并规划,子 Agent 再补参数串行执行
   multi_depend: {
-    clarify: {
+    intentClarify: {
+      question: '你是希望先得到学情分析结果,再基于结果生成讲评课件,对吗?',
+      options: ['对,先分析再生成课件','只生成课件,不用分析','先只看分析结论'],
+      customPlaceholder: '比如:先分析错题,再生成学生版讲义',
+    },
+    paramClarify: {
       question: '好的。你这次想分析哪个班级?',
       options: ['初二(3)班','初二(5)班','初二(7)班'],
       customPlaceholder: '比如:初三(2)班,只看作文部分',
     },
-    plan: '明白了。第二步依赖第一步的分析结果,我会按顺序执行 ✨\n\n  1. 分析班级学情 —— 汇总近期作业,定位高频错题\n  2. 生成讲评课件 —— 基于学情结果输出 HTML 课件',
+    plan: '明白了。我会先分析学情,再基于结果生成讲评课件 ✨\n\n  1. 分析班级学情,定位高频共性问题\n  2. 生成讲评课件,围绕分析结果展开',
     tasks: [
       {
         title:'分析班级学情', icon:'📊',
@@ -694,8 +722,37 @@ function step3_userMsg(text){
   appendUser(text);
 }
 
-/* ============== 步骤 4:意图澄清(选择 + 自定义输入) ============== */
-async function step4_clarify(clarify){
+async function collapseClarifyOptions(block, selectedValue, opts={}){
+  if(!block || block.dataset.collapsed === 'true') return;
+  block.dataset.collapsed = 'true';
+
+  if(opts.hideAfterSelect){
+    block.style.maxHeight = block.scrollHeight + 'px';
+    await sleep(20);
+    block.classList.add('is-hiding');
+    await sleep(280);
+    block.remove();
+    scrollBottom();
+    return;
+  }
+
+  const summaryEl = block.querySelector('.clarify-summary');
+  summaryEl.querySelector('.clarify-selected-text').textContent = selectedValue;
+
+  block.querySelectorAll('button[data-c]').forEach(btn=>{
+    btn.classList.toggle('is-selected', btn.dataset.c === selectedValue);
+  });
+
+  block.style.maxHeight = block.scrollHeight + 'px';
+  await sleep(20);
+  block.classList.add('is-collapsed');
+  await sleep(280);
+  block.style.maxHeight = '';
+  scrollBottom();
+}
+
+/* ============== 步骤 4:澄清 ============== */
+async function step4_clarify(clarify, opts={}){
   const body = appendAIWrap();
   await showModelLoading(body, {minMs: 4200});
   const p = document.createElement('div');
@@ -703,29 +760,51 @@ async function step4_clarify(clarify){
   body.appendChild(p);
   await typewriter(p, clarify.question);
 
+  const optionBlock = document.createElement('div');
+  optionBlock.className = 'clarify-option-block mt-1 rounded-2xl border border-blue-100 bg-blue-50/40 p-3';
+
   const wrap = document.createElement('div');
-  wrap.className = 'flex flex-wrap gap-2 items-center';
+  wrap.className = 'clarify-options flex flex-wrap gap-2 items-center';
   wrap.innerHTML = clarify.options.map(c=>`
     <button data-c="${c}" class="chip px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-700">${c}</button>
   `).join('') + `
     <button id="customBtn" class="chip px-3 py-1.5 bg-white border border-dashed border-gray-300 rounded-full text-sm text-gray-500">+ 自定义</button>
   `;
-  body.appendChild(wrap);
+  optionBlock.appendChild(wrap);
 
   const customPanel = document.createElement('div');
-  customPanel.className = 'hidden mt-2 flex gap-2';
+  customPanel.className = 'clarify-custom-panel hidden mt-2 flex gap-2';
   customPanel.innerHTML = `
     <input id="customInput" placeholder="${clarify.customPlaceholder}" class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-indigo-300" />
     <button id="customSubmit" class="px-3 py-2 bg-indigo-500 text-white text-sm rounded-lg">确定</button>
   `;
-  body.appendChild(customPanel);
+  optionBlock.appendChild(customPanel);
+
+  if(!opts.hideAfterSelect){
+    const summary = document.createElement('div');
+    summary.className = 'clarify-summary items-center justify-between gap-2';
+    summary.innerHTML = `
+      <span class="flex items-center gap-2 min-w-0 text-sm text-gray-700">
+        <span class="text-green-500 shrink-0">✓</span>
+        <span class="clarify-selected-text truncate"></span>
+      </span>
+      <button type="button" class="clarify-toggle shrink-0 text-xs text-blue-500 hover:text-blue-600">展开</button>
+    `;
+    summary.querySelector('.clarify-toggle').onclick = ()=>{
+      const expanded = optionBlock.classList.toggle('is-expanded');
+      summary.querySelector('.clarify-toggle').textContent = expanded ? '收起' : '展开';
+      scrollBottom();
+    };
+    optionBlock.appendChild(summary);
+  }
+  body.appendChild(optionBlock);
   scrollBottom();
 
   return new Promise(resolve=>{
     wrap.querySelectorAll('button[data-c]').forEach(btn=>{
-      btn.onclick = ()=>{
+      btn.onclick = async ()=>{
         wrap.querySelectorAll('button').forEach(b=>b.disabled=true);
-        customPanel.remove();
+        await collapseClarifyOptions(optionBlock, btn.dataset.c, opts);
         resolve(btn.dataset.c);
       };
     });
@@ -734,11 +813,11 @@ async function step4_clarify(clarify){
       customPanel.classList.add('flex');
       customPanel.querySelector('input').focus();
     };
-    customPanel.querySelector('#customSubmit').onclick = ()=>{
+    customPanel.querySelector('#customSubmit').onclick = async ()=>{
       const v = customPanel.querySelector('input').value.trim();
       if(!v) return;
       wrap.querySelectorAll('button').forEach(b=>b.disabled=true);
-      customPanel.remove();
+      await collapseClarifyOptions(optionBlock, v, opts);
       resolve(v);
     };
   });
@@ -1424,10 +1503,18 @@ async function runSimpleChat(scriptObj, sid){
   scrollBottom();
 }
 
-/* ============== 通用收尾:规划 → 执行 → 回复 ============== */
+/* ============== 通用收尾:规划 → 子 Agent 参数澄清 → 执行 → 回复 ============== */
 async function runTail(scriptObj, sid, opts={}){
   await step5_plan(scriptObj.plan, {withIntentLoading: !!opts.withIntentLoading});
   if(sid !== session) return;
+  if(scriptObj.paramClarify){
+    const params = await step4_clarify(scriptObj.paramClarify);
+    if(sid !== session) return;
+    await sleep(300);
+    step3_userMsg(params);
+    await sleep(500);
+    if(sid !== session) return;
+  }
   if(scriptObj.file){
     openDrawer(scriptObj.file, {skeleton:true});
   }
@@ -1469,7 +1556,7 @@ async function main(sid){
       break;
     }
     case 'single_lack': {
-      const cls = await step4_clarify(s.clarify);
+      const cls = await step4_clarify(s.intentClarify, { hideAfterSelect: true });
       if(sid !== session) return;
       await sleep(300);
       step3_userMsg(cls);
@@ -1479,7 +1566,7 @@ async function main(sid){
       break;
     }
     case 'multi_parallel': {
-      const cls = await step4_clarify(s.clarify);
+      const cls = await step4_clarify(s.intentClarify, { hideAfterSelect: true });
       if(sid !== session) return;
       await sleep(300);
       step3_userMsg(cls);
@@ -1489,7 +1576,7 @@ async function main(sid){
       break;
     }
     case 'multi_depend': {
-      const cls = await step4_clarify(s.clarify);
+      const cls = await step4_clarify(s.intentClarify, { hideAfterSelect: true });
       if(sid !== session) return;
       await sleep(300);
       step3_userMsg(cls);

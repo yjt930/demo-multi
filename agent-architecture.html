@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>飞象AI助手 · Agent 核心流转</title>
+<style>
+  :root{--bg:#F6F7F9;--text:#1F2937;--muted:#6B7280;--line:#C7D2FE;--blue:#2563EB;--blue-soft:#EFF6FF;--indigo-soft:#EEF2FF;--green-soft:#ECFDF5;}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;color:var(--text);background:linear-gradient(180deg,#FBFCFF 0%,var(--bg) 100%);}
+  header{height:58px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.9);border-bottom:1px solid #E5E7EB;}
+  .brand{display:flex;align-items:center;gap:10px}.logo{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#3B82F6,#4F46E5);color:#fff;font-size:13px;font-weight:700}.brand strong{display:block;font-size:15px}.brand span{display:block;font-size:12px;color:#9CA3AF;margin-top:1px}
+  a{color:#6B7280;text-decoration:none;font-size:12px;padding:8px 12px;border:1px solid #E5E7EB;border-radius:999px;background:#fff}
+  main{max-width:1180px;margin:0 auto;padding:28px}.hero{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:end;margin-bottom:18px}h1{margin:0 0 10px;font-size:28px;line-height:1.25;color:#111827}.lead{margin:0;max-width:760px;font-size:14px;line-height:1.8;color:var(--muted)}.badge{white-space:nowrap;color:var(--blue);background:var(--blue-soft);border:1px solid #BFDBFE;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:650}
+  .panel{background:rgba(255,255,255,.94);border:1px solid #E5E7EB;border-radius:26px;box-shadow:0 20px 60px rgba(15,23,42,.06)}.core{padding:26px}.flow{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;align-items:stretch}.step{position:relative;min-height:168px;padding:16px;background:#fff;border:1px solid #E5E7EB;border-radius:20px}.step.main{border-color:#BFDBFE;background:linear-gradient(180deg,#FFFFFF,#EFF6FF)}.step.sub{border-color:#C7D2FE;background:linear-gradient(180deg,#FFFFFF,#F5F3FF)}.step:not(:last-child)::after{content:"";position:absolute;top:50%;right:-13px;width:14px;height:2px;background:var(--line);z-index:2}.step:not(:last-child)::before{content:"";position:absolute;top:calc(50% - 4px);right:-15px;border-left:8px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;z-index:3}
+  .num{font-size:11px;color:var(--blue);font-weight:700;margin-bottom:8px}.title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#111827;margin-bottom:8px}.ico{width:26px;height:26px;border-radius:10px;display:grid;place-items:center;background:var(--blue-soft)}.desc{font-size:12px;line-height:1.7;color:#6B7280}.code{display:inline-block;margin-top:9px;padding:4px 7px;border-radius:999px;background:#F3F4F6;color:#4B5563;font-size:10px;font-weight:650}
+  .rules{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.rule{padding:16px;border-radius:20px;border:1px solid #E5E7EB;background:#fff}.rule.depend{background:var(--indigo-soft);border-color:#C7D2FE}.rule.parallel{background:var(--green-soft);border-color:#A7F3D0}.rule h2{margin:0 0 8px;font-size:15px;color:#111827}.rule p{margin:0;font-size:12px;line-height:1.75;color:#5B6472}
+  .ui{margin-top:16px;padding:20px}.ui h2{margin:0 0 14px;font-size:16px;color:#111827}.ui-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.ui-card{background:#fff;border:1px solid #E5E7EB;border-radius:18px;padding:14px}.ui-title{font-size:13px;font-weight:700;color:#111827;margin-bottom:6px}.ui-text{font-size:12px;color:#6B7280;line-height:1.65}.summary{margin-top:16px;padding:16px 18px;border-left:4px solid #60A5FA;background:#fff;border-radius:18px;color:#4B5563;font-size:13px;line-height:1.8}
+  @media(max-width:980px){main{padding:18px}.hero{grid-template-columns:1fr}.flow{grid-template-columns:1fr}.step:not(:last-child)::after,.step:not(:last-child)::before{display:none}.rules,.ui-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <header><div class="brand"><div class="logo">象</div><div><strong>飞象AI助手</strong><span>Agent 核心流转架构</span></div></div><a href="./agent-demo.html">返回 Demo</a></header>
+  <main>
+    <section class="hero"><div><h1>核心逻辑：主 Agent 澄清意图，子 Agent 澄清参数</h1><p class="lead">这张图只保留当前 demo 最关键的流转：用户提出教学需求后，主 Agent 先确认“要解决什么问题”和任务关系，然后输出可解释的执行规划；进入执行阶段后，每个子 Agent 再补齐自己需要的班级、时间、难度、格式等参数，最后开始工具调用和产物生成。</p></div><div class="badge">对应 agent-demo.html 的真实流程</div></section>
+    <section class="panel core"><div class="flow" aria-label="Agent core flow">
+      <article class="step"><div class="num">01</div><div class="title"><span class="ico">💬</span>用户需求</div><div class="desc">老师输入一句话，也可能带图片、Excel、知识库文件。</div><span class="code">step3_userMsg</span></article>
+      <article class="step main"><div class="num">02</div><div class="title"><span class="ico">🧠</span>主 Agent 识别意图</div><div class="desc">判断是单任务还是多任务，任务之间是否有依赖。</div><span class="code">intentType</span></article>
+      <article class="step main"><div class="num">03</div><div class="title"><span class="ico">❔</span>主 Agent 意图澄清</div><div class="desc">只确认目标和任务关系，例如“先分析再生成课件”还是“只要报告”。</div><span class="code">intentClarify</span></article>
+      <article class="step main"><div class="num">04</div><div class="title"><span class="ico">📋</span>主 Agent 输出规划</div><div class="desc">把需求拆成老师能看懂的步骤，说明会调度哪些子 Agent。</div><span class="code">step5_plan</span></article>
+      <article class="step sub"><div class="num">05</div><div class="title"><span class="ico">🤖</span>子 Agent 参数澄清</div><div class="desc">子 Agent 再确认自己执行所需的班级、时间、难度、格式等参数。</div><span class="code">paramClarify</span></article>
+      <article class="step sub"><div class="num">06</div><div class="title"><span class="ico">🛠️</span>子 Agent 开始工作</div><div class="desc">学情分析、课件生成、组卷、阅读练习、导出等子 Agent 执行具体任务。</div><span class="code">step6_execute</span></article>
+      <article class="step"><div class="num">07</div><div class="title"><span class="ico">📄</span>汇总与展示</div><div class="desc">主 Agent 汇总子 Agent 结果，聊天区给结论，右侧 drawer 展示产物。</div><span class="code">step7_reply</span></article>
+    </div><div class="rules"><article class="rule depend"><h2>有依赖：串行执行</h2><p>例如“先分析学情，再生成讲评课件”。课件生成 Agent 必须等待学情分析 Agent 输出“3 个共性问题”，再把这个结果作为输入继续执行。</p></article><article class="rule parallel"><h2>无依赖：并行执行</h2><p>例如“同时生成数学卷和语文阅读练习”。两个子 Agent 不共享前序结果，可以同时运行，前端用并行任务列展示进度。</p></article></div></section>
+    <section class="panel ui"><h2>前端只需要把 4 类信息展示清楚</h2><div class="ui-grid"><article class="ui-card"><div class="ui-title">1. 主 Agent 意图澄清</div><div class="ui-text">告诉老师现在只确认“目标是什么”，不急着问参数。</div></article><article class="ui-card"><div class="ui-title">2. 主 Agent 执行规划</div><div class="ui-text">解释为什么串行、为什么并行，以及会调度哪些子 Agent。</div></article><article class="ui-card"><div class="ui-title">3. 子 Agent 参数澄清</div><div class="ui-text">每个执行 Agent 问自己需要的班级、时间、难度等参数。</div></article><article class="ui-card"><div class="ui-title">4. 子 Agent 工作过程</div><div class="ui-text">展示读取数据、扫描作业、生成课件等工具调用过程。</div></article></div></section>
+    <div class="summary">一句话总结：主 Agent 负责“我要做什么、怎么安排”；子 Agent 负责“我执行前还缺哪些参数、具体怎么做”。demo 现在会先出现主 Agent 意图澄清，再出现主 Agent 规划，随后才由子 Agent 参数澄清并开始工作。</div>
+  </main>
+</body>
+</html>
